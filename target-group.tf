@@ -1,5 +1,5 @@
 resource "aws_lb_target_group" "this" {
-  name        = "${var.project_name}-tg-${var.environment}"
+  name        = "${var.application}-tg-${var.environment}"
   port        = var.port
   protocol    = var.protocol
   vpc_id      = var.vpc_id
@@ -15,6 +15,6 @@ resource "aws_lb_target_group" "this" {
   }
 
   tags = merge(local.common_tags, {
-    Name = "${var.project_name}-tg-${var.environment}"
+    Name = "${var.application}-tg-${var.environment}"
   })
 }

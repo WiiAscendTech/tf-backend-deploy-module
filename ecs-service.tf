@@ -1,5 +1,5 @@
 resource "aws_ecs_service" "this" {
-  name            = "${var.project_name}-ecs-service-${var.environment}"
+  name            = "${var.application}-ecs-service-${var.environment}"
   cluster         = var.cluster_id
   task_definition = aws_ecs_task_definition.this.arn
   desired_count   = var.desired_count
@@ -22,8 +22,8 @@ resource "aws_ecs_service" "this" {
   enable_execute_command = true
 
   load_balancer {
-    target_group_arn = var.target_group_arn
-    container_name   = var.container_name
+    target_group_arn = aws_lb_target_group.this.arn
+    container_name   = var.application
     container_port   = var.container_port
   }
 
@@ -32,19 +32,24 @@ resource "aws_ecs_service" "this" {
   }
 
   tags = merge(local.common_tags, {
-    Name = "${var.project_name}-ecs-service-${var.environment}"
+    Name = "${var.application}-ecs-service-${var.environment}"
   })
 }
 
 resource "aws_ecs_task_definition" "this" {
-  family                   = "${var.project_name}-td-${var.environment}"
+  family                   = "${var.application}-td-${var.environment}"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = var.task_cpu
   memory                   = var.task_memory
   execution_role_arn       = var.execution_role_arn
-  task_role_arn            = var.task_role_arn
-  container_definitions    = var.container_definitions
+  task_role_arn            = aws_iam_role.this.arn
+  container_definitions = jsonencode([
+    {
+      name      = var.application,
+      image     = "${aws_ecr_repository.this.repository_url}:latest",
+    }
+  ])
   dynamic "volume" {
     for_each = var.volumes
     content {
@@ -54,7 +59,7 @@ resource "aws_ecs_task_definition" "this" {
   }
 
   tags = merge(local.common_tags, {
-    Name = "${var.project_name}-td-${var.environment}"
+    Name = "${var.application}-td-${var.environment}"
   })
 }
 
@@ -111,7 +116,7 @@ resource "aws_appautoscaling_policy" "requests_scaling" {
       unit        = "Count"
       dimensions {
         name  = "TargetGroup"
-        value = var.target_group_arn_suffix
+        value = split(":", aws_lb_target_group.this.arn)[5]
       }
       dimensions {
         name  = "LoadBalancer"
@@ -125,7 +130,7 @@ resource "aws_appautoscaling_policy" "requests_scaling" {
 }
 
 resource "aws_security_group" "ecs_sg" {
-  name        = "${var.project_name}-ecs-sg-${var.environment}"
+  name        = "${var.application}-ecs-sg-${var.environment}"
   description = "Security Group para o ECS"
   vpc_id      = var.vpc_id
 
@@ -144,6 +149,6 @@ resource "aws_security_group" "ecs_sg" {
   }
 
   tags = merge(local.common_tags, {
-    Name = "${var.project_name}-ecs-sg-${var.environment}"
+    Name = "${var.application}-ecs-sg-${var.environment}"
   })
 }

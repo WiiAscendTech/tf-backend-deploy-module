@@ -5,7 +5,7 @@ resource "local_file" "adot_config" {
     amp_remote_write_url = var.amp_remote_write_url
     enable_traces        = var.enable_traces
     enable_metrics       = var.enable_metrics
-    project_name         = var.project_name
+    project_name         = var.application
     environment          = var.environment
   })
   filename = "${path.module}/collector.yaml"

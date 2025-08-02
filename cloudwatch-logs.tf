@@ -1,10 +1,10 @@
 resource "aws_cloudwatch_log_group" "this" {
-  name              = "/ecs/${var.project_name}-${var.environment}"
+  name              = "/ecs/${var.application}-${var.environment}"
   retention_in_days = var.retention_in_days
   kms_key_id        = var.kms_key_id
 
   tags = merge(local.common_tags, {
-    Name = "${var.project_name}-${var.environment}"
+    Name = "${var.application}-${var.environment}"
   })
 }
 
@@ -25,7 +25,7 @@ resource "aws_cloudwatch_log_metric_filter" "this" {
 resource "aws_cloudwatch_log_subscription_filter" "this" {
   count = var.destination_arn != null ? 1 : 0
 
-  name            = "${var.project_name}-${var.environment}-subscription"
+  name            = "${var.application}-${var.environment}-subscription"
   log_group_name  = aws_cloudwatch_log_group.this.name
   destination_arn = var.destination_arn
   filter_pattern  = var.subscription_filter_pattern

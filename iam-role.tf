@@ -1,21 +1,21 @@
 resource "aws_iam_role" "this" {
-  name               = "${var.project_name}-${var.role_name}-${var.environment}"
+  name               = "${var.application}-${var.role_name}-${var.environment}"
   description        = var.role_description
   assume_role_policy = var.assume_role_policy_json
 
   tags = merge(local.common_tags, {
-    Name = "${var.project_name}-${var.role_name}-${var.environment}"
+    Name = "${var.application}-${var.role_name}-${var.environment}"
   })
 }
 
 resource "aws_iam_policy" "this" {
   count       = var.policy_json != null ? 1 : 0
-  name        = "${var.project_name}-${var.policy_name}-${var.environment}"
+  name        = "${var.application}-${var.policy_name}-${var.environment}"
   description = var.policy_description
   policy      = var.policy_json
 
   tags = merge(local.common_tags, {
-    Name = "${var.project_name}-${var.policy_name}-${var.environment}"
+    Name = "${var.application}-${var.policy_name}-${var.environment}"
   })
 }
 

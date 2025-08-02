@@ -15,11 +15,11 @@ resource "aws_xray_sampling_rule" "default" {
 }
 
 resource "aws_iam_role" "this" {
-  name               = "${var.project_name}-xray-role-${var.environment}"
+  name               = "${var.application}-xray-role-${var.environment}"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 
   tags = merge(local.common_tags, {
-    Name = "${var.project_name}-xray-role-${var.environment}"
+    Name = "${var.application}-xray-role-${var.environment}"
   })
 }
 
