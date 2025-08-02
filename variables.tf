@@ -210,11 +210,6 @@ variable "container_definitions" {
   description = "Definições do container ECS em formato JSON."
 }
 
-variable "target_group_arn" {
-  type        = string
-  description = "ARN do Target Group do Load Balancer associado ao ECS."
-}
-
 variable "container_name" {
   type        = string
   description = "Nome do container"
@@ -428,12 +423,6 @@ variable "secret_string" {
   description = "Valor do segredo. Deixe nulo se for adicionar manualmente via Console ou CLI."
 }
 
-variable "kms_key_id" {
-  type        = string
-  default     = null
-  description = "ID da KMS key para encriptação personalizada (opcional)."
-}
-
 // TARGET GROUP
 variable "health_check_path" {
   description = "Path do health check"
@@ -495,11 +484,6 @@ variable "target_type" {
     condition     = contains(["instance", "ip", "lambda"], var.target_type)
     error_message = "O target_type deve ser instance, ip ou lambda."
   }
-}
-
-variable "vpc_id" {
-  description = "ID da VPC onde o Load Balancer será criado"
-  type        = string
 }
 
 // X-RAY
@@ -615,34 +599,6 @@ variable "subscription_role_arn" {
   description = "IAM Role ARN para Subscription Filter (se necessário)"
   type        = string
   default     = null
-}
-
-variable "environment" {
-  description = "Ambiente de implantação"
-  type        = string
-}
-
-variable "project_name" {
-  type        = string
-  description = "Nome do projeto para prefixar recursos."
-}
-
-variable "owner" {
-  description = "Time responsável pelo recurso"
-  type        = string
-}
-
-variable "application" {
-  description = "Aplicação que utiliza o recurso"
-  type        = string
-}
-
-variable "tags" {
-  type = map(string)
-  default = {
-    ManagedBy = "Terraform"
-  }
-  description = "Tags padrão aplicadas aos recursos"
 }
 
 variable "aws_resource" {

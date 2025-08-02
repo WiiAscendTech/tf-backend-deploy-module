@@ -14,7 +14,7 @@ resource "aws_xray_sampling_rule" "default" {
   depends_on     = [aws_iam_role.this]
 }
 
-resource "aws_iam_role" "this" {
+resource "aws_iam_role" "xray_write" {
   name               = "${var.application}-xray-role-${var.environment}"
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 
