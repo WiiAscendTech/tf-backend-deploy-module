@@ -74,7 +74,7 @@ output "container_port" {
 
 output "ecs_cloudwatch_log_group_name" {
   description = "Nome do Log Group do ECS"
-  value       = aws_cloudwatch_log_group.ecs_cloudwatch_log_group.name
+  value       = aws_cloudwatch_log_group.this.name
 }
 
 // IAM ROLE
