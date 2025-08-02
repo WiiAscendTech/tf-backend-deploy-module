@@ -49,7 +49,7 @@ resource "aws_ecs_task_definition" "this" {
       name      = var.application,
       image     = "${aws_ecr_repository.this.repository_url}:latest",
     },
-    jsondecode(local_file.adot_config.container_definitions)
+    jsondecode(local_file.adot_config.adot_container_definition)
   ])
   dynamic "volume" {
     for_each = var.volumes
