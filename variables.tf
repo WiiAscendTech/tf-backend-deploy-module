@@ -162,7 +162,7 @@ variable "task_cpu" {
   description = "CPU alocada para a Task ECS."
   default     = 512
   validation {
-    condition     = contains(["64", "128", "256", "512", "1024", "2048", "4096"], var.task_cpu)
+    condition     = contains([64, 128, 256, 512, 1024, 2048, 4096], var.task_cpu)
     error_message = "Valores válidos para task_cpu: 256, 512, 1024, 2048, 4096."
   }
 }
@@ -172,7 +172,7 @@ variable "task_memory" {
   description = "Memória disponível para a Task ECS."
   default     = 1024
   validation {
-    condition     = contains(["128", "256", "512", "1024", "2048", "3072", "4096", "5120", "6144", "7168", "8192"], var.task_memory)
+    condition     = contains([128, 256, 512, 1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192], var.task_memory)
     error_message = "Valores válidos para task_memory: 512, 1024, 2048, ..., 8192."
   }
 }
