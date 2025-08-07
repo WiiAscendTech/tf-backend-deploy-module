@@ -151,12 +151,6 @@ variable "cluster_name" {
   type        = string
 }
 
-
-variable "secret_name" {
-  description = "Nome do Secrets Manager que armazena variáveis e segredos das aplicações"
-  type        = string
-}
-
 variable "task_cpu" {
   type        = number
   description = "CPU alocada para a Task ECS."
@@ -214,11 +208,6 @@ variable "assign_public_ip" {
   type        = bool
   description = "Determina se será atribuído IP público às tasks."
   default     = false
-}
-
-variable "container_definitions" {
-  type        = string
-  description = "Definições do container ECS em formato JSON."
 }
 
 variable "container_name" {
@@ -339,12 +328,6 @@ variable "autoscaling_requests_target_value" {
 
 variable "load_balancer_arn_suffix" {
   description = "Sufixo do ARN do Load Balancer (ex: app/meu-alb/12345). Necessário para escalonamento por requisição."
-  type        = string
-  default     = null
-}
-
-variable "target_group_arn_suffix" {
-  description = "Sufixo do ARN do Target Group (ex: targetgroup/meu-tg/67890). Necessário para escalonamento por requisição."
   type        = string
   default     = null
 }
