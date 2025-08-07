@@ -3,8 +3,8 @@ output "adot_container_definition" {
   value = jsonencode({
     name      = var.container_name,
     image     = var.image,
-    cpu       = var.cpu,
-    memory    = var.memory,
+    cpu       = var.adot_cpu,
+    memory    = var.adot_memory,
     essential = false,
 
     command = ["--config=env:ADOT_CONFIG_CONTENT"],

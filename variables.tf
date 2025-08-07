@@ -60,13 +60,13 @@ variable "image" {
   default     = "amazon/aws-otel-collector:latest"
 }
 
-variable "cpu" {
+variable "adot_cpu" {
   description = "CPU para o container ADOT"
   type        = number
   default     = 128
 }
 
-variable "memory" {
+variable "adot_memory" {
   description = "Memória para o container ADOT"
   type        = number
   default     = 256
