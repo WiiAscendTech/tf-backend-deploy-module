@@ -177,6 +177,17 @@ variable "task_memory" {
   }
 }
 
+variable "container_cpu" {
+  description = "CPU (unidades ECS) para o container principal"
+  type        = number
+  default     = 256
+}
+variable "container_memory" {
+  description = "Memória para o container principal"
+  type        = number
+  default     = 512
+}
+
 variable "execution_role_arn" {
   type        = string
   description = "ARN da Execution Role do ECS criada no módulo de Cluster."

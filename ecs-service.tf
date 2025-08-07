@@ -49,8 +49,8 @@ resource "aws_ecs_task_definition" "this" {
     {
       name             = var.application,
       image            = "${aws_ecr_repository.this.repository_url}:latest",
-      cpu              = var.task_cpu,
-      memory           = var.task_memory,
+      cpu              = var.container_cpu,
+      memory           = var.container_memory,
       essential        = true,
       portMappings     = [
         {
