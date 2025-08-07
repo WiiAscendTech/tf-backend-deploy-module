@@ -158,7 +158,7 @@ variable "secret_name" {
 }
 
 variable "task_cpu" {
-  type        = string
+  type        = number
   description = "CPU alocada para a Task ECS."
   default     = 512
   validation {
@@ -168,7 +168,7 @@ variable "task_cpu" {
 }
 
 variable "task_memory" {
-  type        = string
+  type        = number
   description = "Memória disponível para a Task ECS."
   default     = 1024
   validation {
