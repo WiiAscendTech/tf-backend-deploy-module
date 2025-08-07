@@ -44,13 +44,35 @@ resource "aws_ecs_task_definition" "this" {
   memory                   = var.task_memory
   execution_role_arn       = var.execution_role_arn
   task_role_arn            = aws_iam_role.this.arn
+
   container_definitions = jsonencode([
     {
-      name      = var.application,
-      image     = "${aws_ecr_repository.this.repository_url}:latest",
+      name             = var.application,
+      image            = "${aws_ecr_repository.this.repository_url}:latest",
+      cpu              = var.task_cpu,
+      memory           = var.task_memory,
+      essential        = true,
+      portMappings     = [
+        {
+          containerPort = var.container_port,
+          hostPort      = var.container_port,
+          protocol      = "tcp"
+        }
+      ],
+      logConfiguration = {
+        logDriver = "awslogs",
+        options = {
+          awslogs-group         = var.log_group
+          awslogs-region        = var.region
+          awslogs-stream-prefix = var.application
+        }
+      },
+      environment = var.ecs_environment_variables,
+      secrets     = var.ecs_secrets,
     },
     local.adot_container_definition
   ])
+
   dynamic "volume" {
     for_each = var.volumes
     content {

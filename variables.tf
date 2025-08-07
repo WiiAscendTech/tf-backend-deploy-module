@@ -261,6 +261,37 @@ variable "volumes" {
   default = []
 }
 
+variable "ecs_environment_variables" {
+  description = <<EOT
+Lista de variáveis de ambiente para o container principal do ECS.
+Exemplo:
+[
+  { name = "NODE_ENV", value = "production" },
+  { name = "API_URL",  value = "https://api.exemplo.com" }
+]
+EOT
+  type    = list(object({
+    name  = string
+    value = string
+  }))
+  default = []
+}
+
+variable "ecs_secrets" {
+  description = <<EOT
+Lista de secrets do AWS Secrets Manager para injetar no container principal do ECS.
+Exemplo:
+[
+  { name = "AWS_SECRETS_JSON", valueFrom = "arn:aws:secretsmanager:us-east-1:123456789012:secret:meu-segredo-abc123" }
+]
+EOT
+  type    = list(object({
+    name      = string
+    valueFrom = string
+  }))
+  default = []
+}
+
 # --------------- #
 # AUTOSCALING     #
 # --------------- #
