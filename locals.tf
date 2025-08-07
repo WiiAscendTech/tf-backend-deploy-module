@@ -40,7 +40,7 @@ locals {
 
   environment_variables = concat(var.environment_variables, [local.adot_config_env])
 
-  final_name = var.name_override != null ? var.name_override : "${var.project_name}-${var.environment}"
+  final_name = var.name_override != null ? var.name_override : "${var.application}-${var.environment}"
 
   common_tags = merge(var.tags, {
     Environment = var.environment
