@@ -43,8 +43,16 @@ extensions:
 
 service:
   telemetry:
+    logs:
+      level: info 
     metrics:
-      address: 0.0.0.0:8888
+      level: normal
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
 
   extensions: [sigv4auth]
   pipelines:
