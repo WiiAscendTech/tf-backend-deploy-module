@@ -40,12 +40,27 @@ locals {
 
   environment_variables = concat(var.environment_variables, [local.adot_config_env])
 
-  final_name = var.name_override != null ? var.name_override : "${var.application}-${var.environment}"
-
   common_tags = merge(var.tags, {
     Environment = var.environment
     Project     = var.project_name
     Owner       = var.owner
     Application = var.application
   })
+}
+
+resource "local_file" "adot_config" {
+  content = templatefile("${path.module}/templates/adot-config.yaml.tpl", {
+    region               = var.region
+    assume_role_arn      = var.assume_role_arn
+    amp_remote_write_url = var.amp_remote_write_url
+    enable_traces        = var.enable_traces
+    enable_metrics       = var.enable_metrics
+    project_name         = var.application
+    environment          = var.environment
+  })
+  filename = "${path.module}/collector.yaml"
+}
+
+data "local_file" "adot_config_content" {
+  filename = local_file.adot_config.filename
 }
