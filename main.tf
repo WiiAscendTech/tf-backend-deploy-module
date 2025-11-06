@@ -294,8 +294,24 @@ locals {
     security_group_name   = "${service_name}-${var.environment}"
     security_group_ingress_rules = {
       app_port = {
-        from_port   = try(service_config.container_definitions[keys(service_config.container_definitions)[0]].port_mappings[0].container_port, 80)
-        to_port     = try(service_config.container_definitions[keys(service_config.container_definitions)[0]].port_mappings[0].container_port, 80)
+        from_port = try(
+          flatten([
+            for container_definition in values(service_config.container_definitions) : [
+              for mapping in try(container_definition.portMappings, []) : mapping.containerPort
+            ]
+            if try(container_definition.create, true)
+          ])[0],
+          80
+        )
+        to_port     = try(
+          flatten([
+            for container_definition in values(service_config.container_definitions) : [
+              for mapping in try(container_definition.portMappings, []) : mapping.containerPort
+            ]
+            if try(container_definition.create, true)
+          ])[0],
+          80
+        )
         ip_protocol = "tcp"
         cidr_ipv4   = "10.0.0.0/8"
         description = "Application traffic"
@@ -313,56 +329,64 @@ locals {
     create_task_exec_iam_role = false  # Usa a role compartilhada do cluster
     
     # Container definitions processadas
-    container_definitions = { for container_name, container_config in service_config.container_definitions : container_name => merge(container_config, {
-      name = container_name
-      
-      # Port mappings formatação correta
-      portMappings = [for pm in container_config.port_mappings : {
-        containerPort = pm.container_port
-        hostPort      = pm.host_port
-        protocol      = pm.protocol
-        name          = pm.name != null ? pm.name : "${container_name}-${pm.container_port}"
-        appProtocol   = pm.app_protocol
-      }]
-      
-      # Environment variables formatação correta
-      environment = container_config.environment
-      secrets     = container_config.secrets
-      
-      # Health check formatação correta
-      healthCheck = container_config.health_check != null ? {
-        command     = container_config.health_check.command
-        interval    = container_config.health_check.interval
-        timeout     = container_config.health_check.timeout
-        retries     = container_config.health_check.retries
-        startPeriod = container_config.health_check.start_period
-      } : null
-      
-      # Logging configuration
-      enable_cloudwatch_logging              = container_config.enable_cloudwatch_logging
-      create_cloudwatch_log_group            = container_config.enable_cloudwatch_logging
-      cloudwatch_log_group_retention_in_days = container_config.log_group_retention_days
-      cloudwatch_log_group_kms_key_id        = var.ecs_log_group_kms_key
-      service                                = service_name
-      
-      # Linux parameters
-      readonlyRootFilesystem = container_config.readonly_root_filesystem
-      privileged             = container_config.privileged
-      
-      # Working directory and user
-      workingDirectory = container_config.working_directory
-      user             = container_config.user
-      
-      # Command and entrypoint
-      command    = container_config.command
-      entrypoint = container_config.entry_point
-      
-      # Dependencies
-      dependsOn = [for dep in container_config.depends_on : {
-        containerName = dep.container_name
-        condition     = dep.condition
-      }]
-    })}
+    container_definitions = {
+      for container_name, container_config in service_config.container_definitions :
+      container_name => merge(container_config, {
+        name = container_name
+
+        # Port mappings formatação correta
+        portMappings = [
+          for pm in try(container_config.portMappings, []) : {
+            containerPort = pm.containerPort
+            hostPort      = pm.hostPort
+            protocol      = pm.protocol
+            name          = pm.name != null ? pm.name : "${container_name}-${pm.containerPort}"
+            appProtocol   = pm.appProtocol
+          }
+        ]
+
+        # Environment variables formatação correta
+        environment = container_config.environment
+        secrets     = container_config.secrets
+
+        # Health check formatação correta
+        healthCheck = container_config.health_check != null ? {
+          command     = container_config.health_check.command
+          interval    = container_config.health_check.interval
+          timeout     = container_config.health_check.timeout
+          retries     = container_config.health_check.retries
+          startPeriod = container_config.health_check.start_period
+        } : null
+
+        # Logging configuration
+        enable_cloudwatch_logging              = container_config.enable_cloudwatch_logging
+        create_cloudwatch_log_group            = container_config.enable_cloudwatch_logging
+        cloudwatch_log_group_retention_in_days = container_config.log_group_retention_days
+        cloudwatch_log_group_kms_key_id        = var.ecs_log_group_kms_key
+        service                                = service_name
+
+        # Linux parameters
+        readonlyRootFilesystem = container_config.readonly_root_filesystem
+        privileged             = container_config.privileged
+
+        # Working directory and user
+        workingDirectory = container_config.working_directory
+        user             = container_config.user
+
+        # Command and entrypoint
+        command    = container_config.command
+        entrypoint = container_config.entry_point
+
+        # Dependencies
+        dependsOn = [
+          for dep in try(container_config.depends_on, []) : {
+            containerName = dep.container_name
+            condition     = dep.condition
+          }
+        ]
+      })
+      if try(container_config.create, true)
+    }
     
     # Auto scaling configuration
     autoscaling_policies = service_config.enable_autoscaling ? {
@@ -565,8 +589,52 @@ locals {
   )
 }
 
-# Data source para account ID
+# Data sources úteis
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
+# Validações de configuração condicional
+resource "null_resource" "validate_adot" {
+  count = var.enable_adot ? 1 : 0
+
+  lifecycle {
+    precondition {
+      condition     = length(trimspace(coalesce(var.amp_remote_write_url, ""))) > 0
+      error_message = "Quando enable_adot for verdadeiro, amp_remote_write_url deve ser informado."
+    }
+
+    precondition {
+      condition     = length(trimspace(coalesce(var.assume_role_arn, ""))) > 0
+      error_message = "Quando enable_adot for verdadeiro, assume_role_arn deve ser informado."
+    }
+
+    precondition {
+      condition     = length(trimspace(coalesce(var.log_group, ""))) > 0
+      error_message = "Quando enable_adot for verdadeiro, log_group deve ser informado."
+    }
+  }
+}
+
+resource "null_resource" "validate_alb_routing" {
+  count = var.enable_alb_routing ? 1 : 0
+
+  lifecycle {
+    precondition {
+      condition     = length(trimspace(coalesce(var.listener_arn, ""))) > 0
+      error_message = "Quando enable_alb_routing for verdadeiro, listener_arn deve ser informado."
+    }
+
+    precondition {
+      condition     = length(trimspace(coalesce(var.vpc_id, ""))) > 0
+      error_message = "Quando enable_alb_routing for verdadeiro, vpc_id deve ser informado."
+    }
+
+    precondition {
+      condition     = var.priority > 0 && var.priority <= 50000
+      error_message = "Quando enable_alb_routing for verdadeiro, priority deve estar entre 1 e 50000."
+    }
+  }
+}
 
 module "secrets_manager" {
   for_each = var.enable_secrets_manager ? local.all_secrets : {}

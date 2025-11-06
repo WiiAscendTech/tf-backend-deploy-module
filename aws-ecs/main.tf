@@ -3,7 +3,7 @@
 ################################################################################
 
 module "cluster" {
-  source = "./modules/cluster"
+  source = "./cluster"
 
   create = var.create
   region = var.region
@@ -50,7 +50,7 @@ module "cluster" {
 ################################################################################
 
 module "service" {
-  source = "./modules/service"
+  source = "./service"
 
   for_each = var.create && var.services != null ? var.services : {}
 

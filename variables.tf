@@ -99,11 +99,13 @@ variable "enable_metrics" {
 variable "amp_remote_write_url" {
   description = "URL do endpoint de remote write do Amazon Managed Prometheus"
   type        = string
+  default     = ""
 }
 
 variable "assume_role_arn" {
   description = "ARN da IAM role que o ADOT Collector deve assumir para acessar AMP"
   type        = string
+  default     = ""
 }
 
 # =============================================================================
@@ -113,6 +115,7 @@ variable "assume_role_arn" {
 variable "log_group" {
   description = "Nome do CloudWatch Log Group para os logs do ADOT"
   type        = string
+  default     = ""
 }
 
 variable "log_stream_prefix" {
@@ -153,19 +156,22 @@ variable "enable_alb_routing" {
 variable "listener_arn" {
   description = "ARN do Listener (443/80) no ALB compartilhado"
   type        = string
+  default     = ""
 }
 
 variable "vpc_id" {
   description = "VPC onde o Target Group será criado"
   type        = string
+  default     = ""
 }
 
 variable "priority" {
   description = "Prioridade única da regra no listener"
   type        = number
+  default     = 0
   validation {
-    condition     = var.priority >= 1 && var.priority <= 50000
-    error_message = "Priority deve estar entre 1 e 50000."
+    condition     = var.priority == 0 || (var.priority >= 1 && var.priority <= 50000)
+    error_message = "Priority deve estar entre 1 e 50000 quando informado."
   }
 }
 
@@ -614,19 +620,20 @@ variable "ecs_services" {
     
     # Container definitions
     container_definitions = map(object({
+      create        = optional(bool, true)
       image         = string
       essential     = optional(bool, true)
       cpu           = optional(number, 0)
       memory        = optional(number)
       memory_reservation = optional(number)
-      
+
       # Port mappings
-      port_mappings = optional(list(object({
-        container_port = number
-        host_port      = optional(number)
-        protocol       = optional(string, "tcp")
-        name           = optional(string)
-        app_protocol   = optional(string)
+      portMappings = optional(list(object({
+        containerPort = number
+        hostPort      = optional(number)
+        protocol      = optional(string, "tcp")
+        name          = optional(string)
+        appProtocol   = optional(string)
       })), [])
       
       # Environment variables

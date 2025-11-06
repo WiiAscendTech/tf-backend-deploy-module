@@ -133,7 +133,7 @@ module "backend_deploy" {
       container_definitions = {
         app = {
           image = "${module.backend_deploy.ecr_repository_url}:latest"
-          port_mappings = [{ container_port = 8080 }]
+          portMappings = [{ containerPort = 8080 }]
           
           # Usar secrets do Secrets Manager
           secrets = [
@@ -477,10 +477,10 @@ module "backend_deploy" {
           image     = "${module.backend_deploy.ecr_repository_url}:latest"
           essential = true
           
-          port_mappings = [
+          portMappings = [
             {
-              container_port = 8080
-              protocol       = "tcp"
+              containerPort = 8080
+              protocol      = "tcp"
               name          = "http"
             }
           ]
@@ -642,7 +642,7 @@ ecs_services = {
     container_definitions = {
       app = {
         image = "my-api:latest"
-        port_mappings = [{ container_port = 8080 }]
+        portMappings = [{ containerPort = 8080 }]
       }
       adot = {
         image = "amazon/aws-otel-collector:latest"
