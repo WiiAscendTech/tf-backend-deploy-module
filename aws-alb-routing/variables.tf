@@ -100,7 +100,7 @@ variable "health_check_unhealthy_threshold" {
 variable "health_check_matcher" {
   description = "Matcher de HTTP codes (ex.: 200-399)"
   type        = string
-  default     = "200-399"
+  default     = "200,201,202"
 }
 
 # Avançados do TG (opt-ins)

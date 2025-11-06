@@ -100,12 +100,20 @@ variable "amp_remote_write_url" {
   description = "URL do endpoint de remote write do Amazon Managed Prometheus"
   type        = string
   default     = ""
+  validation {
+    condition     = var.enable_adot ? length(trimspace(var.amp_remote_write_url)) > 0 : true
+    error_message = "amp_remote_write_url é obrigatório quando o ADOT estiver habilitado."
+  }
 }
 
 variable "assume_role_arn" {
   description = "ARN da IAM role que o ADOT Collector deve assumir para acessar AMP"
   type        = string
   default     = ""
+  validation {
+    condition     = var.enable_adot ? length(trimspace(var.assume_role_arn)) > 0 : true
+    error_message = "assume_role_arn é obrigatório quando o ADOT estiver habilitado."
+  }
 }
 
 # =============================================================================
@@ -116,6 +124,10 @@ variable "log_group" {
   description = "Nome do CloudWatch Log Group para os logs do ADOT"
   type        = string
   default     = ""
+  validation {
+    condition     = var.enable_adot ? length(trimspace(var.log_group)) > 0 : true
+    error_message = "log_group é obrigatório quando o ADOT estiver habilitado."
+  }
 }
 
 variable "log_stream_prefix" {
@@ -686,7 +698,16 @@ variable "ecs_services" {
     autoscaling_max_capacity = optional(number, 10)
     autoscaling_target_cpu   = optional(number, 70)
     autoscaling_target_memory = optional(number, 80)
-    
+    autoscaling_scale_in_cooldown  = optional(number, 300)
+    autoscaling_scale_out_cooldown = optional(number, 60)
+    autoscaling_request_count = optional(object({
+      enabled            = optional(bool, false)
+      resource_label     = string
+      target_value       = optional(number, 1000)
+      scale_in_cooldown  = optional(number, 300)
+      scale_out_cooldown = optional(number, 60)
+    }), null)
+
     # Service tags
     service_tags = optional(map(string), {})
   }))
@@ -741,6 +762,80 @@ variable "ecs_log_group_kms_key" {
   description = "ARN da chave KMS para criptografia dos logs"
   type        = string
   default     = null
+}
+
+variable "create_ecs_alarms" {
+  description = "Cria alarmes críticos de observabilidade para o cluster ECS"
+  type        = bool
+  default     = false
+}
+
+variable "ecs_alarm_actions" {
+  description = "Lista de ARNs (SNS, SSM, etc.) a serem acionados quando o alarme for disparado"
+  type        = list(string)
+  default     = []
+}
+
+variable "ecs_alarm_ok_actions" {
+  description = "Lista de ARNs acionados quando o alarme retornar ao estado OK"
+  type        = list(string)
+  default     = []
+}
+
+variable "ecs_alarm_insufficient_data_actions" {
+  description = "Lista de ARNs acionados quando o alarme estiver em estado de dados insuficientes"
+  type        = list(string)
+  default     = []
+}
+
+variable "ecs_alarm_treat_missing_data" {
+  description = "Comportamento para pontos de dados ausentes (notBreaching, breaching, ignore, missing)"
+  type        = string
+  default     = "notBreaching"
+  validation {
+    condition     = contains(["breaching", "notBreaching", "ignore", "missing"], var.ecs_alarm_treat_missing_data)
+    error_message = "ecs_alarm_treat_missing_data deve ser breaching, notBreaching, ignore ou missing."
+  }
+}
+
+variable "ecs_cpu_alarm_threshold" {
+  description = "Percentual de CPU do cluster ECS que dispara o alarme"
+  type        = number
+  default     = 80
+  validation {
+    condition     = var.ecs_cpu_alarm_threshold > 0 && var.ecs_cpu_alarm_threshold <= 100
+    error_message = "ecs_cpu_alarm_threshold deve estar entre 1 e 100."
+  }
+}
+
+variable "ecs_cpu_alarm_evaluation_periods" {
+  description = "Quantidade de períodos que a métrica deve violar o limiar para disparar o alarme"
+  type        = number
+  default     = 2
+  validation {
+    condition     = var.ecs_cpu_alarm_evaluation_periods >= 1
+    error_message = "ecs_cpu_alarm_evaluation_periods deve ser no mínimo 1."
+  }
+}
+
+variable "ecs_cpu_alarm_period" {
+  description = "Período (em segundos) usado para avaliar a métrica de CPU"
+  type        = number
+  default     = 300
+  validation {
+    condition     = var.ecs_cpu_alarm_period >= 60
+    error_message = "ecs_cpu_alarm_period deve ser maior ou igual a 60 segundos."
+  }
+}
+
+variable "ecs_cpu_alarm_statistic" {
+  description = "Estatística utilizada no alarme de CPU"
+  type        = string
+  default     = "Average"
+  validation {
+    condition     = contains(["SampleCount", "Average", "Sum", "Minimum", "Maximum"], var.ecs_cpu_alarm_statistic)
+    error_message = "ecs_cpu_alarm_statistic deve ser SampleCount, Average, Sum, Minimum ou Maximum."
+  }
 }
 
 # =============================================================================
@@ -899,13 +994,41 @@ variable "create_api_keys_secret" {
   description = "Cria secret para chaves de APIs externas"
   type        = bool
   default     = false
+  validation {
+    condition     = var.create_api_keys_secret ? length(trimspace(var.api_keys_rotation_lambda_arn)) > 0 : true
+    error_message = "api_keys_rotation_lambda_arn deve ser informado quando create_api_keys_secret for verdadeiro."
+  }
 }
 
 variable "api_keys_config" {
-  description = "Configuração das chaves de API"
-  type = map(string)
+  description = "Mapeamento de chaves de API existentes no Secrets Manager que devem ser agregadas"
+  type = map(object({
+    secret_arn    = string
+    version_stage = optional(string, "AWSCURRENT")
+  }))
   default = {}
-  sensitive = true
+}
+
+variable "api_keys_rotation_lambda_arn" {
+  description = "ARN da função Lambda responsável por rotacionar o secret agregador de API keys"
+  type        = string
+  default     = ""
+}
+
+variable "api_keys_rotation_days" {
+  description = "Frequência (em dias) da rotação automática do secret de API keys"
+  type        = number
+  default     = 30
+  validation {
+    condition     = var.api_keys_rotation_days >= 7 && var.api_keys_rotation_days <= 90
+    error_message = "api_keys_rotation_days deve estar entre 7 e 90 dias."
+  }
+}
+
+variable "additional_secret_reader_arns" {
+  description = "ARNs adicionais (além da task execution role) com permissão de leitura aos secrets gerenciados"
+  type        = list(string)
+  default     = []
 }
 
 variable "create_app_secrets" {
