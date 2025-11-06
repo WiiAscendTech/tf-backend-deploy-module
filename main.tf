@@ -10,7 +10,7 @@ locals {
     Owner       = var.owner
     Application = var.application
     ManagedBy   = "Terraform"
-    CreatedAt   = timestamp()
+    CreatedAt   = formatdate("YYYY-MM-DD", timestamp())
   })
 
   # Nome padrão para recursos
@@ -113,10 +113,10 @@ locals {
     rules = [
       {
         rulePriority = 1
-        description  = "Keep last ${var.max_image_count} production images"
+        description  = "Retain the last ${var.max_image_count} semantic versioned images"
         selection = {
           tagStatus     = "tagged"
-          tagPrefixList = ["prod", "production", "release"]
+          tagPrefixList = ["v"]
           countType     = "imageCountMoreThan"
           countNumber   = var.max_image_count
         }
@@ -126,10 +126,10 @@ locals {
       },
       {
         rulePriority = 2
-        description  = "Keep last ${var.max_image_count} staging images"
+        description  = "Retain the last ${var.max_image_count} release candidate images"
         selection = {
           tagStatus     = "tagged"
-          tagPrefixList = ["stg", "staging", "stage"]
+          tagPrefixList = ["rc", "release-candidate"]
           countType     = "imageCountMoreThan"
           countNumber   = var.max_image_count
         }
@@ -139,25 +139,12 @@ locals {
       },
       {
         rulePriority = 3
-        description  = "Keep last ${var.max_image_count * 2} development images"
-        selection = {
-          tagStatus     = "tagged"
-          tagPrefixList = ["dev", "development", "feature"]
-          countType     = "imageCountMoreThan"
-          countNumber   = var.max_image_count * 2
-        }
-        action = {
-          type = "expire"
-        }
-      },
-      {
-        rulePriority = 4
-        description  = "Delete untagged images older than 1 day"
+        description  = "Expire untagged images after ${var.untagged_image_retention_days} days"
         selection = {
           tagStatus   = "untagged"
           countType   = "sinceImagePushed"
           countUnit   = "days"
-          countNumber = 1
+          countNumber = var.untagged_image_retention_days
         }
         action = {
           type = "expire"
@@ -389,14 +376,16 @@ locals {
     }
     
     # Auto scaling configuration
-    autoscaling_policies = service_config.enable_autoscaling ? {
+    autoscaling_policies = service_config.enable_autoscaling ? merge({
       cpu_scaling = {
         policy_type = "TargetTrackingScaling"
         target_tracking_scaling_policy_configuration = {
           predefined_metric_specification = {
             predefined_metric_type = "ECSServiceAverageCPUUtilization"
           }
-          target_value = service_config.autoscaling_target_cpu
+          target_value       = service_config.autoscaling_target_cpu
+          scale_in_cooldown  = service_config.autoscaling_scale_in_cooldown
+          scale_out_cooldown = service_config.autoscaling_scale_out_cooldown
         }
       }
       memory_scaling = {
@@ -405,10 +394,25 @@ locals {
           predefined_metric_specification = {
             predefined_metric_type = "ECSServiceAverageMemoryUtilization"
           }
-          target_value = service_config.autoscaling_target_memory
+          target_value       = service_config.autoscaling_target_memory
+          scale_in_cooldown  = service_config.autoscaling_scale_in_cooldown
+          scale_out_cooldown = service_config.autoscaling_scale_out_cooldown
         }
       }
-    } : {}
+    }, service_config.autoscaling_request_count != null && try(service_config.autoscaling_request_count.enabled, false) ? {
+      request_count_scaling = {
+        policy_type = "TargetTrackingScaling"
+        target_tracking_scaling_policy_configuration = {
+          predefined_metric_specification = {
+            predefined_metric_type = "ALBRequestCountPerTarget"
+            resource_label         = service_config.autoscaling_request_count.resource_label
+          }
+          target_value       = service_config.autoscaling_request_count.target_value
+          scale_in_cooldown  = lookup(service_config.autoscaling_request_count, "scale_in_cooldown", service_config.autoscaling_scale_in_cooldown)
+          scale_out_cooldown = lookup(service_config.autoscaling_request_count, "scale_out_cooldown", service_config.autoscaling_scale_out_cooldown)
+        }
+      }
+    } : {}) : {}
     
     # Capacity provider strategy
     capacity_provider_strategy = local.capacity_provider_strategy
@@ -468,6 +472,29 @@ module "ecs" {
   services = var.enable_ecs ? local.processed_services : {}
 }
 
+resource "aws_cloudwatch_metric_alarm" "ecs_cpu_high" {
+  count = var.enable_ecs && var.create_ecs_alarms ? 1 : 0
+
+  alarm_name                = "${local.resource_prefix}-ecs-cpu-high"
+  comparison_operator       = "GreaterThanThreshold"
+  evaluation_periods        = var.ecs_cpu_alarm_evaluation_periods
+  threshold                 = var.ecs_cpu_alarm_threshold
+  alarm_description         = "ECS cluster CPU utilization higher than ${var.ecs_cpu_alarm_threshold}%"
+  metric_name               = "CPUUtilization"
+  namespace                 = "AWS/ECS"
+  period                    = var.ecs_cpu_alarm_period
+  statistic                 = var.ecs_cpu_alarm_statistic
+  treat_missing_data        = var.ecs_alarm_treat_missing_data
+  actions_enabled           = length(var.ecs_alarm_actions) > 0 || length(var.ecs_alarm_ok_actions) > 0 || length(var.ecs_alarm_insufficient_data_actions) > 0
+  alarm_actions             = var.ecs_alarm_actions
+  ok_actions                = var.ecs_alarm_ok_actions
+  insufficient_data_actions = var.ecs_alarm_insufficient_data_actions
+
+  dimensions = {
+    ClusterName = module.ecs[0].cluster_name
+  }
+}
+
 # =============================================================================
 # AWS SECRETS MANAGER MODULE
 # =============================================================================
@@ -522,35 +549,49 @@ locals {
     "api-keys" = {
       name        = "${local.resource_prefix}-api-keys"
       description = "External API keys for ${var.application}"
-      
-      secret_string = jsonencode(var.api_keys_config)
-      
+
+      secret_string = jsonencode({
+        for key, config in var.api_keys_config : key => (
+          try(data.aws_secretsmanager_secret_version.api_keys[key].secret_string, null) != null ?
+          data.aws_secretsmanager_secret_version.api_keys[key].secret_string :
+          base64decode(data.aws_secretsmanager_secret_version.api_keys[key].secret_binary)
+        )
+      })
+
       kms_key_id              = var.secrets_kms_key_id
       recovery_window_in_days = var.secrets_recovery_window
       replica                 = local.default_replica_config
-      
+
       # Policy para acesso controlado
-      create_policy = true
-      policy_statements = {
+      create_policy = length(compact(concat(var.enable_ecs ? [module.ecs[0].task_exec_iam_role_arn] : [], var.additional_secret_reader_arns))) > 0
+      policy_statements = length(compact(concat(var.enable_ecs ? [module.ecs[0].task_exec_iam_role_arn] : [], var.additional_secret_reader_arns))) > 0 ? {
         application_access = {
           sid    = "ApplicationAccess"
           effect = "Allow"
           principals = [{
             type        = "AWS"
-            identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/*ECS*"]
+            identifiers = compact(concat(var.enable_ecs ? [module.ecs[0].task_exec_iam_role_arn] : [], var.additional_secret_reader_arns))
           }]
           actions = [
             "secretsmanager:GetSecretValue",
             "secretsmanager:DescribeSecret"
           ]
-          condition = [{
-            test     = "StringEquals"
-            variable = "secretsmanager:ResourceTag/Environment"
-            values   = [var.environment]
-          }]
+          condition = [
+            {
+              test     = "StringEquals"
+              variable = "aws:RequestedRegion"
+              values   = [var.region]
+            }
+          ]
         }
+      } : {}
+
+      enable_rotation     = true
+      rotation_lambda_arn = var.api_keys_rotation_lambda_arn
+      rotation_rules = {
+        automatically_after_days = var.api_keys_rotation_days
       }
-      
+
       tags = merge(local.common_tags, {
         SecretType = "api-keys"
         Sensitive  = "high"
@@ -593,28 +634,14 @@ locals {
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-# Validações de configuração condicional
-resource "null_resource" "validate_adot" {
-  count = var.enable_adot ? 1 : 0
+data "aws_secretsmanager_secret_version" "api_keys" {
+  for_each = var.create_api_keys_secret && length(var.api_keys_config) > 0 ? var.api_keys_config : {}
 
-  lifecycle {
-    precondition {
-      condition     = length(trimspace(coalesce(var.amp_remote_write_url, ""))) > 0
-      error_message = "Quando enable_adot for verdadeiro, amp_remote_write_url deve ser informado."
-    }
-
-    precondition {
-      condition     = length(trimspace(coalesce(var.assume_role_arn, ""))) > 0
-      error_message = "Quando enable_adot for verdadeiro, assume_role_arn deve ser informado."
-    }
-
-    precondition {
-      condition     = length(trimspace(coalesce(var.log_group, ""))) > 0
-      error_message = "Quando enable_adot for verdadeiro, log_group deve ser informado."
-    }
-  }
+  secret_id     = each.value.secret_arn
+  version_stage = lookup(each.value, "version_stage", "AWSCURRENT")
 }
 
+# Validações de configuração condicional
 resource "null_resource" "validate_alb_routing" {
   count = var.enable_alb_routing ? 1 : 0
 

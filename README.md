@@ -59,12 +59,17 @@ module "backend_deploy" {
   }
 
   # API Keys para serviços externos
-  create_api_keys_secret = true
+  create_api_keys_secret       = true
+  api_keys_rotation_lambda_arn = "arn:aws:lambda:us-east-1:123456789012:function:rotate-api-keys"
+  api_keys_rotation_days       = 30
   api_keys_config = {
-    stripe_secret_key = "sk_live_..."
-    stripe_public_key = "pk_live_..."
-    sendgrid_api_key  = "SG...."
-    oauth_client_secret = "oauth_secret_..."
+    stripe = {
+      secret_arn    = "arn:aws:secretsmanager:us-east-1:123456789012:secret:stripe/prod"
+      version_stage = "AWSCURRENT"
+    }
+    sendgrid = {
+      secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:sendgrid/prod"
+    }
   }
 
   # Application secrets

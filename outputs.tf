@@ -185,16 +185,22 @@ output "ecs_services" {
   description = "Informações dos serviços ECS criados"
   value       = var.enable_ecs ? {
     for service_name, service in module.ecs[0].services : service_name => {
-      id                    = service.id
-      name                  = service.name
-      arn                   = service.arn
-      cluster               = service.cluster
-      desired_count         = service.desired_count
-      launch_type           = service.launch_type
-      platform_version      = service.platform_version
-      task_definition       = service.task_definition
-      security_group_id     = try(service.security_group_id, null)
-      autoscaling_enabled   = service.autoscaling_enabled
+      id                           = service.id
+      name                         = service.name
+      arn                          = service.arn
+      cluster                      = service.cluster
+      desired_count                = service.desired_count
+      launch_type                  = service.launch_type
+      platform_version             = service.platform_version
+      task_definition              = service.task_definition
+      task_definition_family       = try(service.task_definition_family, null)
+      last_deployment_status       = try(service.deployment_status, null)
+      running_count                = try(service.running_count, null)
+      pending_count                = try(service.pending_count, null)
+      security_group_id            = try(service.security_group_id, null)
+      cloudwatch_log_group         = try(service.cloudwatch_log_group_name, null)
+      service_connect_configuration = try(service.service_connect_configuration, null)
+      autoscaling_enabled          = service.autoscaling_enabled
     }
   } : {}
 }
