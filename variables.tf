@@ -450,6 +450,12 @@ variable "max_image_count" {
   default     = 10
 }
 
+variable "untagged_image_retention_days" {
+  description = "Número de dias para manter imagens sem tags antes de expirá-las"
+  type        = number
+  default     = 7
+}
+
 # =============================================================================
 # ECR PUBLIC REPOSITORY CONFIG
 # =============================================================================

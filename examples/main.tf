@@ -11,7 +11,7 @@ locals {
 }
 
 module "backend_deploy" {
-  source = "../.."
+  source = ".."
 
   # Informações básicas
   environment  = var.environment
@@ -68,7 +68,6 @@ module "backend_deploy" {
   repository_read_write_access_arns = var.repository_read_write_access_arns
   enable_registry_scanning        = true
   registry_scan_type              = "ENHANCED"
-  enable_cross_region_replication = length(var.replication_destinations) > 0
   replication_destinations        = var.replication_destinations
   max_image_count                 = 15
 

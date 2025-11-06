@@ -24,7 +24,6 @@ enable_alb_routing = false
 ecr_repository_name              = "payments-api"
 repository_type                  = "private"
 max_image_count                  = 3
-untagged_image_retention_days    = 7
 create_lifecycle_policy          = true
 
 enable_secrets_manager       = true
