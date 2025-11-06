@@ -59,6 +59,13 @@ resource "local_file" "adot_config" {
     environment          = var.environment
   })
   filename = "${path.module}/collector.yaml"
+
+  lifecycle {
+    precondition {
+      condition     = fileexists("${path.module}/templates/adot-config.yaml.tpl")
+      error_message = "Template adot-config.yaml.tpl não encontrado no módulo aws-adot."
+    }
+  }
 }
 
 data "local_file" "adot_config_content" {
