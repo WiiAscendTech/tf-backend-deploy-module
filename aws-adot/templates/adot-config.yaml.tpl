@@ -44,7 +44,7 @@ extensions:
 service:
   telemetry:
     logs:
-      level: info 
+      level: info
     metrics:
       level: normal
       readers:
