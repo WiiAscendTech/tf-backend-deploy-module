@@ -1,5 +1,4 @@
 data "aws_region" "current" {
-  region = var.region
 
   count = var.create ? 1 : 0
 }
@@ -37,7 +36,6 @@ locals {
 resource "aws_ecs_service" "this" {
   count = local.create_service && !var.ignore_task_definition_changes ? 1 : 0
 
-  region = var.region
 
   dynamic "alarms" {
     for_each = var.alarms != null ? [var.alarms] : []
@@ -120,16 +118,6 @@ resource "aws_ecs_service" "this" {
       elb_name         = load_balancer.value.elb_name
       target_group_arn = load_balancer.value.target_group_arn
 
-      dynamic "advanced_configuration" {
-        for_each = load_balancer.value.advanced_configuration != null ? [load_balancer.value.advanced_configuration] : []
-
-        content {
-          alternate_target_group_arn = advanced_configuration.value.alternate_target_group_arn
-          production_listener_rule   = advanced_configuration.value.production_listener_rule
-          role_arn                   = advanced_configuration.value.role_arn
-          test_listener_rule         = advanced_configuration.value.test_listener_rule
-        }
-      }
     }
   }
 
@@ -204,27 +192,6 @@ resource "aws_ecs_service" "this" {
               dns_name = client_alias.value.dns_name
               port     = client_alias.value.port
 
-              dynamic "test_traffic_rules" {
-                for_each = client_alias.value.test_traffic_rules != null ? client_alias.value.test_traffic_rules : []
-
-                content {
-                  dynamic "header" {
-                    for_each = test_traffic_rules.value.header != null ? [test_traffic_rules.value.header] : []
-
-                    content {
-                      name = header.value.name
-
-                      dynamic "value" {
-                        for_each = header.value.value != null ? [header.value.value] : []
-
-                        content {
-                          exact = value.value.exact
-                        }
-                      }
-                    }
-                  }
-                }
-              }
             }
           }
 
@@ -273,7 +240,6 @@ resource "aws_ecs_service" "this" {
     }
   }
 
-  sigint_rollback = try(var.deployment_configuration.strategy, null) == "BLUE_GREEN" ? var.sigint_rollback : null
 
   tags            = merge(var.tags, var.service_tags)
   task_definition = local.task_definition
@@ -355,7 +321,6 @@ resource "aws_ecs_service" "this" {
 resource "aws_ecs_service" "ignore_task_definition" {
   count = local.create_service && var.ignore_task_definition_changes ? 1 : 0
 
-  region = var.region
 
   dynamic "alarms" {
     for_each = var.alarms != null ? [var.alarms] : []
@@ -438,16 +403,6 @@ resource "aws_ecs_service" "ignore_task_definition" {
       elb_name         = load_balancer.value.elb_name
       target_group_arn = load_balancer.value.target_group_arn
 
-      dynamic "advanced_configuration" {
-        for_each = load_balancer.value.advanced_configuration != null ? [load_balancer.value.advanced_configuration] : []
-
-        content {
-          alternate_target_group_arn = advanced_configuration.value.alternate_target_group_arn
-          production_listener_rule   = advanced_configuration.value.production_listener_rule
-          role_arn                   = advanced_configuration.value.role_arn
-          test_listener_rule         = advanced_configuration.value.test_listener_rule
-        }
-      }
     }
   }
 
@@ -522,27 +477,6 @@ resource "aws_ecs_service" "ignore_task_definition" {
               dns_name = client_alias.value.dns_name
               port     = client_alias.value.port
 
-              dynamic "test_traffic_rules" {
-                for_each = client_alias.value.test_traffic_rules != null ? client_alias.value.test_traffic_rules : []
-
-                content {
-                  dynamic "header" {
-                    for_each = test_traffic_rules.value.header != null ? [test_traffic_rules.value.header] : []
-
-                    content {
-                      name = header.value.name
-
-                      dynamic "value" {
-                        for_each = header.value.value != null ? [header.value.value] : []
-
-                        content {
-                          exact = value.value.exact
-                        }
-                      }
-                    }
-                  }
-                }
-              }
             }
           }
 
@@ -791,7 +725,6 @@ resource "aws_iam_role_policy_attachment" "service" {
 module "container_definition" {
   source = "../container-definition"
 
-  region = var.region
 
   for_each = { for k, v in var.container_definitions : k => v if local.create_task_definition && v.create }
 
@@ -864,7 +797,6 @@ locals {
 resource "aws_ecs_task_definition" "this" {
   count = local.create_task_definition ? 1 : 0
 
-  region = var.region
 
   container_definitions  = jsonencode([for k, v in module.container_definition : v.container_definition])
   cpu                    = var.cpu
@@ -1287,7 +1219,6 @@ resource "aws_iam_role_policy_attachment" "tasks" {
 resource "aws_ecs_task_set" "this" {
   count = local.create_task_definition && local.is_external_deployment && !var.ignore_task_definition_changes ? 1 : 0
 
-  region = var.region
 
   service         = try(aws_ecs_service.this[0].id, aws_ecs_service.ignore_task_definition[0].id)
   cluster         = var.cluster_arn
@@ -1369,7 +1300,6 @@ resource "aws_ecs_task_set" "this" {
 resource "aws_ecs_task_set" "ignore_task_definition" {
   count = local.create_task_definition && local.is_external_deployment && var.ignore_task_definition_changes ? 1 : 0
 
-  region = var.region
 
   service         = try(aws_ecs_service.this[0].id, aws_ecs_service.ignore_task_definition[0].id)
   cluster         = var.cluster_arn
@@ -1458,7 +1388,6 @@ locals {
 resource "aws_appautoscaling_target" "this" {
   count = local.enable_autoscaling ? 1 : 0
 
-  region = var.region
 
   min_capacity = min(var.autoscaling_min_capacity, var.desired_count)
   max_capacity = max(var.autoscaling_max_capacity, var.desired_count)
@@ -1472,7 +1401,6 @@ resource "aws_appautoscaling_target" "this" {
 resource "aws_appautoscaling_policy" "this" {
   for_each = { for k, v in var.autoscaling_policies : k => v if local.enable_autoscaling }
 
-  region = var.region
 
   name               = coalesce(each.value.name, each.key)
   policy_type        = each.value.policy_type
@@ -1768,7 +1696,6 @@ resource "aws_appautoscaling_policy" "this" {
 resource "aws_appautoscaling_scheduled_action" "this" {
   for_each = local.enable_autoscaling && var.autoscaling_scheduled_actions != null ? var.autoscaling_scheduled_actions : {}
 
-  region = var.region
 
   name               = coalesce(each.value.name, each.key)
   service_namespace  = aws_appautoscaling_target.this[0].service_namespace
@@ -1798,7 +1725,6 @@ locals {
 data "aws_subnet" "this" {
   count = local.create_security_group ? 1 : 0
 
-  region = var.region
 
   id = element(var.subnet_ids, 0)
 }
@@ -1806,7 +1732,6 @@ data "aws_subnet" "this" {
 resource "aws_security_group" "this" {
   count = local.create_security_group ? 1 : 0
 
-  region = var.region
 
   name        = var.security_group_use_name_prefix ? null : local.security_group_name
   name_prefix = var.security_group_use_name_prefix ? "${local.security_group_name}-" : null
@@ -1827,7 +1752,6 @@ resource "aws_security_group" "this" {
 resource "aws_vpc_security_group_ingress_rule" "this" {
   for_each = { for k, v in var.security_group_ingress_rules : k => v if var.security_group_ingress_rules != null && local.create_security_group }
 
-  region = var.region
 
   cidr_ipv4                    = each.value.cidr_ipv4
   cidr_ipv6                    = each.value.cidr_ipv6
@@ -1849,7 +1773,6 @@ resource "aws_vpc_security_group_ingress_rule" "this" {
 resource "aws_vpc_security_group_egress_rule" "this" {
   for_each = { for k, v in var.security_group_egress_rules : k => v if var.security_group_egress_rules != null && local.create_security_group }
 
-  region = var.region
 
   cidr_ipv4                    = each.value.cidr_ipv4
   cidr_ipv6                    = each.value.cidr_ipv6

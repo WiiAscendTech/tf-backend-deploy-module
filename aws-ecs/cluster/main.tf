@@ -5,8 +5,6 @@
 resource "aws_ecs_cluster" "this" {
   count = var.create ? 1 : 0
 
-  region = var.region
-
   dynamic "configuration" {
     for_each = var.configuration != null ? [var.configuration] : []
 
@@ -77,8 +75,6 @@ locals {
 resource "aws_cloudwatch_log_group" "this" {
   count = var.create && var.create_cloudwatch_log_group ? 1 : 0
 
-  region = var.region
-
   name              = local.log_group_name
   retention_in_days = var.cloudwatch_log_group_retention_in_days
   kms_key_id        = var.cloudwatch_log_group_kms_key_id
@@ -97,8 +93,6 @@ resource "aws_cloudwatch_log_group" "this" {
 
 resource "aws_ecs_cluster_capacity_providers" "this" {
   count = var.create ? 1 : 0
-
-  region = var.region
 
   cluster_name = aws_ecs_cluster.this[0].name
   capacity_providers = distinct(concat(
@@ -127,8 +121,6 @@ resource "aws_ecs_cluster_capacity_providers" "this" {
 
 resource "aws_ecs_capacity_provider" "this" {
   for_each = var.create && var.autoscaling_capacity_providers != null ? var.autoscaling_capacity_providers : {}
-
-  region = var.region
 
   auto_scaling_group_provider {
     auto_scaling_group_arn = each.value.auto_scaling_group_arn

@@ -15,7 +15,6 @@ module "backend_deploy" {
   project_name = var.project_name
   owner        = var.owner
   application  = var.application
-  region       = var.region
   tags         = local.base_tags
 
   # Observabilidade com ADOT

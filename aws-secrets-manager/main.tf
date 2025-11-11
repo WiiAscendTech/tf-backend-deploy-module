@@ -6,8 +6,6 @@
 resource "aws_secretsmanager_secret" "this" {
   count = var.create ? 1 : 0
 
-  region = var.region
-
   description                    = var.description
   force_overwrite_replica_secret = var.force_overwrite_replica_secret
   kms_key_id                     = var.kms_key_id
@@ -82,8 +80,6 @@ data "aws_iam_policy_document" "this" {
 resource "aws_secretsmanager_secret_policy" "this" {
   count = var.create && var.create_policy ? 1 : 0
 
-  region = var.region
-
   block_public_policy = var.block_public_policy
   policy              = data.aws_iam_policy_document.this[0].json
   secret_arn          = aws_secretsmanager_secret.this[0].arn
@@ -96,8 +92,6 @@ resource "aws_secretsmanager_secret_policy" "this" {
 resource "aws_secretsmanager_secret_version" "this" {
   count = var.create && !(var.enable_rotation || var.ignore_secret_changes) ? 1 : 0
 
-  region = var.region
-
   secret_id                = aws_secretsmanager_secret.this[0].id
   secret_binary            = var.secret_binary
   secret_string            = var.secret_string
@@ -108,8 +102,6 @@ resource "aws_secretsmanager_secret_version" "this" {
 
 resource "aws_secretsmanager_secret_version" "ignore_changes" {
   count = var.create && (var.enable_rotation || var.ignore_secret_changes) ? 1 : 0
-
-  region = var.region
 
   secret_id                = aws_secretsmanager_secret.this[0].id
   secret_binary            = var.secret_binary
@@ -141,8 +133,6 @@ resource "random_password" "this" {
 
 resource "aws_secretsmanager_secret_rotation" "this" {
   count = var.create && var.enable_rotation ? 1 : 0
-
-  region = var.region
 
   rotate_immediately  = var.rotate_immediately
   rotation_lambda_arn = var.rotation_lambda_arn
