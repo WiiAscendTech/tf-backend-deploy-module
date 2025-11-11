@@ -1,5 +1,22 @@
 locals {
-  adot_container_definition = {
+  cloudwatch_log_group_name = coalesce(var.log_group, "/ecs/${var.application}-${var.environment}")
+
+  adot_log_configuration = var.enable_firelens && !var.enable_cloudwatch_logs ? {
+    logDriver = "awsfirelens"
+    options = {
+      Name = "forward"
+      Tag  = "adot.{{.Name}}"
+    }
+  } : var.enable_cloudwatch_logs ? {
+    logDriver = "awslogs"
+    options = {
+      awslogs-group         = local.cloudwatch_log_group_name
+      awslogs-region        = var.region
+      awslogs-stream-prefix = coalesce(var.log_stream_prefix, var.application)
+    }
+  } : null
+
+  adot_container_definition = merge({
     name      = var.container_name,
     image     = var.image,
     cpu       = var.adot_cpu,
@@ -15,15 +32,6 @@ locals {
 
     environment = local.environment_variables,
 
-    logConfiguration = {
-      logDriver = "awslogs",
-      options = {
-        awslogs-group         = var.log_group,
-        awslogs-region        = var.region,
-        awslogs-stream-prefix = var.log_stream_prefix
-      }
-    },
-
     healthCheck = {
       command     = ["CMD-SHELL", "curl -f http://localhost:13133/health/status || exit 1"],
       interval    = 30,
@@ -31,7 +39,9 @@ locals {
       retries     = 3,
       startPeriod = 10
     }
-  }
+  }, local.adot_log_configuration != null ? {
+    logConfiguration = local.adot_log_configuration
+  } : {})
 
   adot_config_env = {
     name  = "ADOT_CONFIG_CONTENT"
@@ -48,4 +58,6 @@ locals {
     Owner       = var.owner
     Application = var.application
   })
+
+  execution_role_name = try(element(reverse(split("/", var.execution_role_arn)), 0), null)
 }

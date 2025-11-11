@@ -1,38 +1,6 @@
 // ADOT SIDECAR
 output "adot_container_definition" {
-  value = jsonencode({
-    name      = var.container_name,
-    image     = var.image,
-    cpu       = var.adot_cpu,
-    memory    = var.adot_memory,
-    essential = false,
-
-    command = ["--config=env:ADOT_CONFIG_CONTENT"],
-
-    portMappings = [
-      { containerPort = 4317, protocol = "tcp" },
-      { containerPort = 4318, protocol = "tcp" }
-    ],
-
-    environment = local.environment_variables,
-
-    logConfiguration = {
-      logDriver = "awslogs",
-      options = {
-        awslogs-group         = var.log_group,
-        awslogs-region        = var.region,
-        awslogs-stream-prefix = var.log_stream_prefix
-      }
-    },
-
-    healthCheck = {
-      command     = ["CMD-SHELL", "curl -f http://localhost:13133/health/status || exit 1"],
-      interval    = 30,
-      timeout     = 5,
-      retries     = 3,
-      startPeriod = 10
-    }
-  })
+  value = jsonencode(local.adot_container_definition)
 }
 
 // ECR
@@ -74,7 +42,7 @@ output "container_port" {
 
 output "ecs_cloudwatch_log_group_name" {
   description = "Nome do Log Group do ECS"
-  value       = aws_cloudwatch_log_group.this.name
+  value       = var.enable_cloudwatch_logs ? aws_cloudwatch_log_group.this[0].name : null
 }
 
 // IAM ROLE
@@ -150,17 +118,17 @@ output "xray_role_arn" {
 // CLOUDWATCH LOGS
 output "log_group_name" {
   description = "Nome do Log Group criado"
-  value       = aws_cloudwatch_log_group.this.name
+  value       = var.enable_cloudwatch_logs ? aws_cloudwatch_log_group.this[0].name : null
 }
 
 output "log_group_arn" {
   description = "ARN do Log Group criado"
-  value       = aws_cloudwatch_log_group.this.arn
+  value       = var.enable_cloudwatch_logs ? aws_cloudwatch_log_group.this[0].arn : null
 }
 
 output "log_group_kms_key_id" {
   description = "KMS Key ID utilizada para criptografia"
-  value       = aws_cloudwatch_log_group.this.kms_key_id
+  value       = var.enable_cloudwatch_logs ? aws_cloudwatch_log_group.this[0].kms_key_id : null
 }
 
 output "subscription_filter_name" {
@@ -171,4 +139,20 @@ output "subscription_filter_name" {
 output "metric_filter_names" {
   description = "Nomes dos Metric Filters criados"
   value       = [for filter in aws_cloudwatch_log_metric_filter.this : filter.name]
+}
+
+// FIRELENS / S3 LOGS
+output "firelens_s3_bucket_name" {
+  description = "Nome do bucket S3 utilizado para armazenar os logs via FireLens"
+  value       = var.enable_firelens ? aws_s3_bucket.firelens_logs[0].bucket : null
+}
+
+output "firelens_s3_bucket_arn" {
+  description = "ARN do bucket S3 utilizado para logs"
+  value       = var.enable_firelens ? aws_s3_bucket.firelens_logs[0].arn : null
+}
+
+output "firelens_config_object_key" {
+  description = "Objeto S3 utilizado como configuração do FireLens"
+  value       = var.enable_firelens ? aws_s3_object.firelens_config[0].key : null
 }
