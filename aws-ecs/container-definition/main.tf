@@ -11,17 +11,17 @@ locals {
   default_log_cfg = var.enable_cloudwatch_logging ? {
     logDriver = "awslogs"
     options = {
-      awslogs-region        = data.aws_region.current.name
+      awslogs-region        = data.aws_region.current.id
       awslogs-group         = try(aws_cloudwatch_log_group.this[0].name, local.log_group_name)
       awslogs-stream-prefix = "ecs"
     }
-  } : {}
+  } : null
 
   # tflint-ignore: terraform_naming_convention
-  logConfiguration = merge(
+  logConfiguration = var.enable_cloudwatch_logging ? merge(
     local.default_log_cfg,
     var.logConfiguration != null ? { for k, v in var.logConfiguration : k => v if v != null } : {}
-  )
+  ) : var.logConfiguration
 
   # tflint-ignore: terraform_naming_convention
   trimmedLinuxParameters = { for k, v in var.linuxParameters : k => v if v != null }
