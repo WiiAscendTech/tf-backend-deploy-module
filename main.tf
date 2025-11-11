@@ -268,7 +268,7 @@ locals {
   }
 
   # Processamento dos serviços ECS
-  processed_services = { for service_name, service_config in var.ecs_services : service_name => merge(service_config, {
+  processed_services = var.enable_ecs ? { for service_name, service_config in var.ecs_services : service_name => merge(service_config, {
     # Configuração automática de nomes
     name   = service_name
     family = "${service_name}-${var.environment}"
@@ -425,7 +425,7 @@ locals {
         container_port   = service_config.load_balancer.container_port
       }
     } : {}
-  }) }
+  }) } : {}
 }
 
 module "ecs" {
@@ -469,7 +469,7 @@ module "ecs" {
   task_exec_secret_arns    = var.secrets_manager_arns
 
   # Services configuration
-  services = var.enable_ecs ? local.processed_services : {}
+  services = local.processed_services
 }
 
 resource "aws_cloudwatch_metric_alarm" "ecs_cpu_high" {
@@ -622,12 +622,12 @@ locals {
   } : {}
 
   # Merge de todos os secrets
-  all_secrets = merge(
+  all_secrets = nonsensitive(merge(
     var.secrets,
     local.database_secret,
     local.api_keys_secret,
     local.app_secrets
-  )
+  ))
 }
 
 # Data sources úteis
