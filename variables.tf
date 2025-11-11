@@ -599,7 +599,7 @@ variable "s3_logs_bucket_name" {
   type        = string
   default     = null
   validation {
-    condition     = var.enable_firelens == false || (var.enable_firelens && var.s3_logs_bucket_name != null && trim(var.s3_logs_bucket_name) != "")
+    condition     = var.enable_firelens == false || (var.enable_firelens && var.s3_logs_bucket_name != null && trimspace(var.s3_logs_bucket_name) != "")
     error_message = "Quando enable_firelens=true é necessário informar um s3_logs_bucket_name válido."
   }
 }
