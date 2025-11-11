@@ -1326,3 +1326,13 @@ variable "infrastructure_iam_role_tags" {
   default     = {}
   nullable    = false
 }
+
+################################################################################
+# ADOT Assume Role Configuration
+################################################################################
+
+variable "adot_assume_role_arn" {
+  description = "ARN of the IAM role that ADOT will assume for sending metrics and traces to AMP/X-Ray"
+  type        = string
+  default     = null
+}

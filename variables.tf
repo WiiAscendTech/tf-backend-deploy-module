@@ -596,13 +596,13 @@ variable "ecs_services" {
   description = "Configuração dos serviços ECS a serem criados"
   type = map(object({
     # Service
-    create                       = optional(bool, true)
-    desired_count                = optional(number, 1)
-    launch_type                  = optional(string, "FARGATE")
-    platform_version             = optional(string, "LATEST")
-    enable_execute_command       = optional(bool, false)
-    force_new_deployment         = optional(bool, false)
-    wait_for_steady_state        = optional(bool, false)
+    create                 = optional(bool, true)
+    desired_count          = optional(number, 1)
+    launch_type            = optional(string, "FARGATE")
+    platform_version       = optional(string, "LATEST")
+    enable_execute_command = optional(bool, false)
+    force_new_deployment   = optional(bool, false)
+    wait_for_steady_state  = optional(bool, false)
 
     # Deployment
     deployment_maximum_percent         = optional(number, 200)
@@ -610,7 +610,7 @@ variable "ecs_services" {
     deployment_circuit_breaker = optional(object({
       enable   = bool
       rollback = bool
-    }), {
+      }), {
       enable   = true
       rollback = true
     })
@@ -633,12 +633,12 @@ variable "ecs_services" {
 
     # Containers
     container_definitions = map(object({
-      create              = optional(bool, true)
-      image               = string
-      essential           = optional(bool, true)
-      cpu                 = optional(number, 0)
-      memory              = optional(number)
-      memory_reservation  = optional(number)
+      create             = optional(bool, true)
+      image              = string
+      essential          = optional(bool, true)
+      cpu                = optional(number, 0)
+      memory             = optional(number)
+      memory_reservation = optional(number)
 
       portMappings = optional(list(object({
         containerPort = number
@@ -840,20 +840,20 @@ variable "secrets" {
   description = "Map de secrets a serem criados no Secrets Manager"
   type = map(object({
     # Basic
-    description                      = optional(string)
-    kms_key_id                       = optional(string)
-    name                             = optional(string)
-    name_prefix                      = optional(string)
-    recovery_window_in_days          = optional(number, 30)
-    force_overwrite_replica_secret   = optional(bool, false)
+    description                    = optional(string)
+    kms_key_id                     = optional(string)
+    name                           = optional(string)
+    name_prefix                    = optional(string)
+    recovery_window_in_days        = optional(number, 30)
+    force_overwrite_replica_secret = optional(bool, false)
 
     # Conteúdo
-    secret_string                    = optional(string)
-    secret_binary                    = optional(string)
-    secret_string_wo                 = optional(string)
-    secret_string_wo_version         = optional(string)
-    ignore_secret_changes            = optional(bool, false)
-    version_stages                   = optional(list(string))
+    secret_string            = optional(string)
+    secret_binary            = optional(string)
+    secret_string_wo         = optional(string)
+    secret_string_wo_version = optional(string)
+    ignore_secret_changes    = optional(bool, false)
+    version_stages           = optional(list(string))
 
     # Gerar senha aleatória
     create_random_password           = optional(bool, false)
@@ -867,9 +867,9 @@ variable "secrets" {
     })), {})
 
     # Policy
-    create_policy        = optional(bool, false)
-    block_public_policy  = optional(bool, true)
-    policy_statements    = optional(map(object({
+    create_policy       = optional(bool, false)
+    block_public_policy = optional(bool, true)
+    policy_statements = optional(map(object({
       sid           = optional(string)
       actions       = optional(list(string))
       not_actions   = optional(list(string))
@@ -948,15 +948,15 @@ variable "create_database_secret" {
 variable "database_secret_config" {
   description = "Configuração do secret do banco de dados"
   type = object({
-    username             = string
-    password             = optional(string)
-    engine               = string
-    host                 = string
-    port                 = number
-    dbname               = string
-    enable_rotation      = optional(bool, false)
-    rotation_lambda_arn  = optional(string)
-    rotation_days        = optional(number, 30)
+    username            = string
+    password            = optional(string)
+    engine              = string
+    host                = string
+    port                = number
+    dbname              = string
+    enable_rotation     = optional(bool, false)
+    rotation_lambda_arn = optional(string)
+    rotation_days       = optional(number, 30)
   })
   default = {
     username = ""

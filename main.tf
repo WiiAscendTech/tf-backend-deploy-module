@@ -470,6 +470,9 @@ module "ecs" {
 
   # Services configuration
   services = local.processed_services
+
+  # ADOT Assume Role (passed to all services)
+  adot_assume_role_arn = var.enable_adot && var.assume_role_arn != null ? var.assume_role_arn : null
 }
 
 resource "aws_cloudwatch_metric_alarm" "ecs_cpu_high" {

@@ -1844,3 +1844,37 @@ resource "aws_iam_role_policy_attachment" "infrastructure_iam_role_vpc_lattice_p
   role       = aws_iam_role.infrastructure_iam_role[0].name
   policy_arn = "arn:${local.partition}:iam::aws:policy/service-role/AmazonECSInfrastructureRolePolicyForVpcLattice"
 }
+
+################################################################################
+# ADOT Assume Role IAM Policy
+################################################################################
+
+data "aws_iam_policy_document" "adot_assume_role" {
+  count = local.create_tasks_iam_role && var.adot_assume_role_arn != null ? 1 : 0
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "sts:AssumeRole"
+    ]
+    resources = [var.adot_assume_role_arn]
+  }
+}
+
+resource "aws_iam_policy" "adot_assume_role" {
+  count = local.create_tasks_iam_role && var.adot_assume_role_arn != null ? 1 : 0
+
+  name        = var.tasks_iam_role_use_name_prefix ? null : "${local.tasks_iam_role_name}-adot-assume-role"
+  name_prefix = var.tasks_iam_role_use_name_prefix ? "${local.tasks_iam_role_name}-adot-assume-role-" : null
+  description = "Allow ADOT collector to assume role for observability"
+  policy      = data.aws_iam_policy_document.adot_assume_role[0].json
+
+  tags = merge(var.tags, var.tasks_iam_role_tags)
+}
+
+resource "aws_iam_role_policy_attachment" "adot_assume_role" {
+  count = local.create_tasks_iam_role && var.adot_assume_role_arn != null ? 1 : 0
+
+  role       = aws_iam_role.tasks[0].name
+  policy_arn = aws_iam_policy.adot_assume_role[0].arn
+}

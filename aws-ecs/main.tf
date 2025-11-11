@@ -192,5 +192,8 @@ module "service" {
   infrastructure_iam_role_permissions_boundary = each.value.infrastructure_iam_role_permissions_boundary
   infrastructure_iam_role_tags                 = each.value.infrastructure_iam_role_tags
 
+  # ADOT Assume Role
+  adot_assume_role_arn = var.adot_assume_role_arn
+
   tags = merge(var.tags, each.value.tags)
 }
