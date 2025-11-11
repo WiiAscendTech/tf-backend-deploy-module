@@ -6,7 +6,7 @@ variable "environment" {
   description = "Ambiente de implantação (dev, staging, prod)"
   type        = string
   validation {
-    condition     = contains(["dev", "staging", "prod"], var.environment)
+    condition     = contains(["dev", "prd"], var.environment)
     error_message = "Environment deve ser dev, staging ou prod."
   }
 }
