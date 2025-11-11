@@ -425,11 +425,6 @@ variable "host_headers" {
   default     = []
 }
 
-variable "target_group_arn" {
-  description = "ARN do Target Group para onde o tráfego será direcionado"
-  type        = string
-}
-
 // SECRETS MANAGER
 variable "name_override" {
   type        = string
