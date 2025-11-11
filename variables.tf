@@ -949,12 +949,6 @@ variable "secrets_recovery_window" {
   }
 }
 
-variable "enable_cross_region_replication" {
-  description = "Habilita replicação cross-region para todos os secrets"
-  type        = bool
-  default     = false
-}
-
 variable "replication_regions" {
   description = "Lista de regiões para replicação automática de secrets"
   type = list(object({
