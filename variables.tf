@@ -1,23 +1,12 @@
-# =============================================================================
-# COMMON VARIABLES
-# =============================================================================
-
+// TAGS
 variable "environment" {
-  description = "Ambiente de implantação (dev, staging, prod)"
+  description = "Ambiente de implantação"
   type        = string
-  validation {
-    condition     = contains(["dev", "prd"], var.environment)
-    error_message = "Environment deve ser dev, staging ou prod."
-  }
 }
 
 variable "project_name" {
-  description = "Nome do projeto para prefixar recursos"
   type        = string
-  validation {
-    condition     = length(var.project_name) > 0 && length(var.project_name) <= 20
-    error_message = "Project name deve ter entre 1 e 20 caracteres."
-  }
+  description = "Nome do projeto para prefixar recursos."
 }
 
 variable "owner" {
@@ -26,62 +15,61 @@ variable "owner" {
 }
 
 variable "application" {
-  description = "Nome da aplicação que utiliza o recurso"
+  description = "Aplicacão que utiliza o recurso"
   type        = string
-}
-
-variable "region" {
-  description = "AWS region onde os recursos serão criados"
-  type        = string
-  default     = "us-east-1"
 }
 
 variable "tags" {
-  description = "Tags personalizadas aplicadas aos recursos"
-  type        = map(string)
-  default     = {}
+  type = map(string)
+  default = {
+    ManagedBy = "Terraform"
+  }
+  description = "Tags padrão aplicadas aos recursos"
 }
 
-# =============================================================================
-# ADOT CONFIGURATION
-# =============================================================================
-
-variable "enable_adot" {
-  description = "Habilita o ADOT Collector como sidecar"
-  type        = bool
-  default     = true
-}
-
-variable "adot_container_name" {
-  description = "Nome do container ADOT"
+// ADOT SIDECAR
+variable "region" {
+  description = "AWS region"
   type        = string
-  default     = "adot-collector"
 }
 
-variable "adot_image" {
+variable "amp_remote_write_url" {
+  description = "AMP Remote Write endpoint"
+  type        = string
+}
+
+variable "log_group" {
+  description = "CloudWatch Log Group"
+  type        = string
+}
+
+variable "log_stream_prefix" {
+  description = "Prefixo dos logs no CloudWatch"
+  type        = string
+}
+
+variable "volume_name" {
+  description = "Nome do volume da task para montar o config"
+  type        = string
+  default     = "adot-config"
+}
+
+variable "image" {
   description = "Imagem do ADOT Collector"
   type        = string
   default     = "amazon/aws-otel-collector:latest"
 }
 
 variable "adot_cpu" {
-  description = "CPU para o container ADOT (em unidades de CPU)"
+  description = "CPU para o container ADOT"
   type        = number
   default     = 128
-  validation {
-    condition     = var.adot_cpu >= 128 && var.adot_cpu <= 4096
-    error_message = "ADOT CPU deve estar entre 128 e 4096 unidades."
-  }
 }
 
 variable "adot_memory" {
-  description = "Memória para o container ADOT (em MB)"
+  description = "Memória para o container ADOT"
   type        = number
   default     = 256
-  validation {
-    condition     = var.adot_memory >= 256 && var.adot_memory <= 8192
-    error_message = "ADOT Memory deve estar entre 256 e 8192 MB."
-  }
 }
 
 variable "enable_traces" {
@@ -91,56 +79,12 @@ variable "enable_traces" {
 }
 
 variable "enable_metrics" {
-  description = "Habilita pipeline de métricas com Amazon Managed Prometheus"
+  description = "Habilita pipeline de métricas com AMP"
   type        = bool
   default     = true
 }
 
-variable "amp_remote_write_url" {
-  description = "URL do endpoint de remote write do Amazon Managed Prometheus"
-  type        = string
-  default     = ""
-  validation {
-    condition     = var.enable_adot ? length(trimspace(var.amp_remote_write_url)) > 0 : true
-    error_message = "amp_remote_write_url é obrigatório quando o ADOT estiver habilitado."
-  }
-}
-
-variable "assume_role_arn" {
-  description = "ARN da IAM role que o ADOT Collector deve assumir para acessar AMP"
-  type        = string
-  default     = ""
-  validation {
-    condition     = var.enable_adot ? length(trimspace(var.assume_role_arn)) > 0 : true
-    error_message = "assume_role_arn é obrigatório quando o ADOT estiver habilitado."
-  }
-}
-
-# =============================================================================
-# LOGGING (ADOT)
-# =============================================================================
-
-variable "log_group" {
-  description = "Nome do CloudWatch Log Group para os logs do ADOT"
-  type        = string
-  default     = ""
-  validation {
-    condition     = var.enable_adot ? length(trimspace(var.log_group)) > 0 : true
-    error_message = "log_group é obrigatório quando o ADOT estiver habilitado."
-  }
-}
-
-variable "log_stream_prefix" {
-  description = "Prefixo dos streams de log no CloudWatch"
-  type        = string
-  default     = "adot"
-}
-
-# =============================================================================
-# ADOT EXTRAS
-# =============================================================================
-
-variable "adot_environment_variables" {
+variable "environment_variables" {
   description = "Variáveis de ambiente adicionais para o container ADOT"
   type = list(object({
     name  = string
@@ -149,879 +93,541 @@ variable "adot_environment_variables" {
   default = []
 }
 
-variable "volume_name" {
-  description = "Nome do volume da task para montar configurações"
+variable "assume_role_arn" {
+  description = "ARN da role que o ADOT Collector deve assumir para enviar métricas para o AMP"
   type        = string
-  default     = "adot-config"
 }
 
-# =============================================================================
-# ALB ROUTING
-# =============================================================================
+// ECR
+variable "image_tag_mutability" {
+  type        = string
+  default     = "MUTABLE"
+  description = "Mutabilidade das tags (MUTABLE ou IMMUTABLE)"
+  validation {
+    condition     = contains(["IMMUTABLE", "MUTABLE"], var.image_tag_mutability)
+    error_message = "O valor de image_tag_mutability deve ser 'IMMUTABLE' ou 'MUTABLE'."
+  }
+}
 
-variable "enable_alb_routing" {
-  description = "Habilita o módulo de roteamento ALB"
+variable "scan_on_push" {
   type        = bool
   default     = true
+  description = "Se true, escaneia vulnerabilidades nas imagens ao serem enviadas"
 }
 
-variable "listener_arn" {
-  description = "ARN do Listener (443/80) no ALB compartilhado"
+variable "protected_tags" {
+  type        = list(string)
+  default     = ["latest"]
+  description = "Lista de tags protegidas que não serão removidas pela política de lifecycle"
+}
+
+
+variable "encryption_type" {
   type        = string
-  default     = ""
+  default     = "AES256"
+  description = "Tipo de criptografia (AES256 ou KMS)"
+}
+
+variable "enable_lifecycle_policy" {
+  type        = bool
+  default     = true
+  description = "Ativa regras de lifecycle nas imagens do repositório"
+}
+
+variable "max_image_count" {
+  type        = number
+  default     = 10
+  description = "Número máximo de imagens mantidas no repositório"
+}
+
+// ECS SERVICE
+variable "cluster_id" {
+  type        = string
+  description = "ID do ECS Cluster já existente onde o Service será criado."
+}
+
+variable "cluster_name" {
+  description = "Nome do ECS Cluster onde o serviço será criado."
+  type        = string
+}
+
+variable "task_cpu" {
+  type        = number
+  description = "CPU alocada para a Task ECS."
+  default     = 512
   validation {
-    condition     = var.enable_alb_routing ? length(trimspace(var.listener_arn)) > 0 : true
-    error_message = "listener_arn é obrigatório quando enable_alb_routing = true."
+    condition     = contains([64, 128, 256, 512, 1024, 2048, 4096], var.task_cpu)
+    error_message = "Valores válidos para task_cpu: 256, 512, 1024, 2048, 4096."
   }
+}
+
+variable "task_memory" {
+  type        = number
+  description = "Memória disponível para a Task ECS."
+  default     = 1024
+  validation {
+    condition     = contains([128, 256, 512, 1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192], var.task_memory)
+    error_message = "Valores válidos para task_memory: 512, 1024, 2048, ..., 8192."
+  }
+}
+
+variable "container_cpu" {
+  description = "CPU (unidades ECS) para o container principal"
+  type        = number
+  default     = 256
+}
+variable "container_memory" {
+  description = "Memória para o container principal"
+  type        = number
+  default     = 512
+}
+
+variable "execution_role_arn" {
+  type        = string
+  description = "ARN da Execution Role do ECS criada no módulo de Cluster."
+}
+
+variable "task_role_arn" {
+  type        = string
+  description = "ARN do IAM role da Task."
+  default     = null
+}
+
+variable "desired_count" {
+  type        = number
+  description = "Número de instâncias desejadas."
+  default     = 1
+}
+
+variable "subnet_ids" {
+  type        = list(string)
+  description = "IDs das subnets para o serviço ECS."
+}
+
+variable "assign_public_ip" {
+  type        = bool
+  description = "Determina se será atribuído IP público às tasks."
+  default     = false
+}
+
+variable "container_name" {
+  type        = string
+  description = "Nome do container"
+}
+
+variable "container_port" {
+  type        = number
+  description = "Porta do container exposta ao Load Balancer."
+  default     = 80
 }
 
 variable "vpc_id" {
-  description = "VPC onde o Target Group será criado"
+  description = "ID da VPC onde o ECS será criado"
   type        = string
-  default     = ""
-  validation {
-    condition     = var.enable_alb_routing ? length(trimspace(var.vpc_id)) > 0 : true
-    error_message = "vpc_id é obrigatório quando enable_alb_routing = true."
-  }
 }
 
-variable "priority" {
-  description = "Prioridade única da regra no listener"
+variable "alb_sg_id" {
+  description = "ID do Security Group do ALB para permitir comunicação com o ECS"
+  type        = string
+}
+
+variable "allowed_sg_ids" {
+  type        = list(string)
+  description = "Lista de security groups que podem acessar o ECS"
+  default     = []
+}
+
+variable "ecs_execution_role_name" {
+  description = "Nome do ECS Execution Role"
+  type        = string
+}
+
+variable "capacity_provider_strategy" {
+  description = "Estratégia de capacity provider (FARGATE ou FARGATE_SPOT)"
+  type = list(object({
+    capacity_provider = string
+    weight            = number
+    base              = optional(number)
+  }))
+  default = null
+}
+
+variable "volumes" {
+  description = "Volumes a serem adicionados na task definition (ex: para ADOT config)"
+  type = list(object({
+    name      = string
+    host_path = optional(string)
+  }))
+  default = []
+}
+
+variable "ecs_environment_variables" {
+  description = <<EOT
+Lista de variáveis de ambiente para o container principal do ECS.
+Exemplo:
+[
+  { name = "NODE_ENV", value = "production" },
+  { name = "API_URL",  value = "https://api.exemplo.com" }
+]
+EOT
+  type    = list(object({
+    name  = string
+    value = string
+  }))
+  default = []
+}
+
+variable "ecs_secrets" {
+  description = <<EOT
+Lista de secrets do AWS Secrets Manager para injetar no container principal do ECS.
+Exemplo:
+[
+  { name = "AWS_SECRETS_JSON", valueFrom = "arn:aws:secretsmanager:us-east-1:123456789012:secret:meu-segredo-abc123" }
+]
+EOT
+  type    = list(object({
+    name      = string
+    valueFrom = string
+  }))
+  default = []
+}
+
+# --------------- #
+# AUTOSCALING     #
+# --------------- #
+
+variable "enable_autoscaling" {
+  description = "Se true, habilita a configuração de Application Auto Scaling para o serviço."
+  type        = bool
+  default     = false
+}
+
+variable "autoscaling_min_capacity" {
+  description = "Número mínimo de tarefas para o Auto Scaling."
   type        = number
-  default     = 0
-  validation {
-    condition     = var.priority == 0 || (var.priority >= 1 && var.priority <= 50000)
-    error_message = "Priority deve estar entre 1 e 50000 quando informado."
-  }
+  default     = 1
 }
 
-variable "host_headers" {
-  description = "Lista de hosts (Host header) para a regra. Deixe vazio se não usar"
+variable "autoscaling_max_capacity" {
+  description = "Número máximo de tarefas para o Auto Scaling."
+  type        = number
+  default     = 4
+}
+
+variable "autoscaling_cpu_target_value" {
+  description = "Valor alvo (em porcentagem) para o escalonamento por CPU. Ex: 75. Deixe como null para desabilitar."
+  type        = number
+  default     = null
+}
+
+variable "autoscaling_requests_target_value" {
+  description = "Valor alvo para o número de requisições por minuto por tarefa. Deixe como null para desabilitar."
+  type        = number
+  default     = null
+}
+
+variable "load_balancer_arn_suffix" {
+  description = "Sufixo do ARN do Load Balancer (ex: app/meu-alb/12345). Necessário para escalonamento por requisição."
+  type        = string
+  default     = null
+}
+
+variable "autoscaling_scale_in_cooldown" {
+  description = "Tempo (em segundos) para esperar antes de uma nova atividade de scale-in (redução)."
+  type        = number
+  default     = 300
+}
+
+variable "autoscaling_scale_out_cooldown" {
+  description = "Tempo (em segundos) para esperar antes de uma nova atividade de scale-out (aumento)."
+  type        = number
+  default     = 60
+}
+
+// IAM ROLE
+variable "role_name" {
+  description = "Nome da IAM Role"
+  type        = string
+}
+
+variable "policy_name" {
+  description = "Nome da IAM Policy"
+  type        = string
+}
+
+variable "role_description" {
+  description = "Descrição da IAM Role"
+  type        = string
+  default     = null
+}
+
+variable "assume_role_policy_json" {
+  description = "Política de confiança (JSON) para a IAM Role"
+  type        = string
+}
+
+variable "policy_json" {
+  description = "Política IAM (JSON) a ser anexada à role"
+  type        = string
+  default     = null
+}
+
+variable "policy_description" {
+  description = "Descrição da política IAM"
+  type        = string
+  default     = null
+}
+
+variable "name_prefix" {
+  description = "Prefixo para compor o nome da role e policy"
+  type        = string
+  default     = null
+}
+
+variable "managed_policy_arns" {
+  description = "Lista de ARNs de políticas gerenciadas para anexar à role"
   type        = list(string)
   default     = []
 }
 
-variable "path_patterns" {
-  description = "Lista de caminhos para a regra (ex.: [/ , /api/*])"
-  type        = list(string)
-  default     = ["/*"]
-}
-
-variable "target_type" {
-  description = "Tipo do alvo no Target Group: instance | ip | lambda"
-  type        = string
-  default     = "ip"
-  validation {
-    condition     = contains(["instance", "ip", "lambda"], var.target_type)
-    error_message = "target_type deve ser instance, ip ou lambda."
-  }
-}
-
-variable "protocol" {
-  description = "Protocolo do Target Group (HTTP/HTTPS/TCP/UDP)"
-  type        = string
-  default     = "HTTP"
-  validation {
-    condition     = contains(["HTTP", "HTTPS", "TCP", "UDP", "TCP_UDP", "TLS"], var.protocol)
-    error_message = "Protocol deve ser HTTP, HTTPS, TCP, UDP, TCP_UDP ou TLS."
-  }
-}
-
-variable "port" {
-  description = "Porta do Target Group (não usado se target_type = lambda)"
-  type        = number
-  default     = 80
-  validation {
-    condition     = var.port >= 1 && var.port <= 65535
-    error_message = "Port deve estar entre 1 e 65535."
-  }
-}
-
-variable "protocol_version" {
-  description = "HTTP1 | HTTP2 | GRPC (quando aplicável ao TG)"
-  type        = string
-  default     = "HTTP1"
-  validation {
-    condition     = contains(["HTTP1", "HTTP2", "GRPC"], var.protocol_version)
-    error_message = "Protocol version deve ser HTTP1, HTTP2 ou GRPC."
-  }
-}
-
-# Regras extras
-variable "lambda_function_arn" {
-  description = "ARN da função Lambda quando target_type = lambda"
-  type        = string
-  default     = null
-  validation {
-    condition     = var.target_type == "lambda" ? length(trimspace(coalesce(var.lambda_function_arn, ""))) > 0 : true
-    error_message = "lambda_function_arn é obrigatório quando target_type = \"lambda\"."
-  }
-}
-
-variable "lambda_attach_permission" {
-  description = "Cria aws_lambda_permission para o ALB invocar a função"
+variable "prevent_destroy" {
+  description = "Se true, protege a role/policy de destruição acidental"
   type        = bool
   default     = true
 }
 
-# =============================================================================
-# HEALTH CHECK (ALB TG)
-# =============================================================================
-
-variable "health_check_path" {
-  description = "Caminho do health check (HTTP/HTTPS)"
+// LISTENER RULE
+variable "listener_arn" {
+  description = "ARN do listener (HTTP ou HTTPS) ao qual a regra será associada"
   type        = string
-  default     = "/health"
+}
+
+variable "priority" {
+  description = "Prioridade da regra de listener. Deve ser única entre regras do mesmo listener"
+  type        = number
+
+  validation {
+    condition     = var.priority >= 1 && var.priority <= 50000
+    error_message = "Priority must be between 1 and 50000."
+  }
+}
+
+variable "path_patterns" {
+  description = "Lista de padrões de path que ativam a regra (ex: ['/api/*'])"
+  type        = list(string)
+}
+
+variable "host_headers" {
+  description = "Lista de domínios (host headers) que ativam a regra, ex: ['api.example.com']"
+  type        = list(string)
+  default     = []
+}
+
+variable "target_group_arn" {
+  description = "ARN do Target Group para onde o tráfego será direcionado"
+  type        = string
+}
+
+// SECRETS MANAGER
+variable "name_override" {
+  type        = string
+  default     = null
+  description = "Nome customizado opcional para o segredo. Substitui o padrão project-environment."
+}
+
+variable "description" {
+  type        = string
+  default     = ""
+  description = "Descrição opcional do segredo."
+}
+
+variable "secret_string" {
+  type        = string
+  sensitive   = true
+  default     = null
+  description = "Valor do segredo. Deixe nulo se for adicionar manualmente via Console ou CLI."
+}
+
+// TARGET GROUP
+variable "health_check_path" {
+  description = "Path do health check"
+  type        = string
+  default     = "/"
 }
 
 variable "health_check_interval" {
-  description = "Intervalo do health check em segundos"
+  description = "Tempo entre os health checks (em segundos)"
   type        = number
   default     = 30
-  validation {
-    condition     = var.health_check_interval >= 5 && var.health_check_interval <= 300
-    error_message = "Health check interval deve estar entre 5 e 300 segundos."
-  }
 }
 
 variable "health_check_timeout" {
-  description = "Timeout do health check em segundos"
+  description = "Tempo limite do health check (em segundos)"
   type        = number
   default     = 5
-  validation {
-    condition     = var.health_check_timeout >= 2 && var.health_check_timeout <= 120
-    error_message = "Health check timeout deve estar entre 2 e 120 segundos."
-  }
 }
 
 variable "health_check_healthy_threshold" {
-  description = "Número de health checks consecutivos para considerar healthy"
+  description = "Número de checks consecutivos para considerar saudável"
   type        = number
   default     = 3
-  validation {
-    condition     = var.health_check_healthy_threshold >= 2 && var.health_check_healthy_threshold <= 10
-    error_message = "Health check healthy threshold deve estar entre 2 e 10."
-  }
 }
 
 variable "health_check_unhealthy_threshold" {
-  description = "Número de health checks consecutivos para considerar unhealthy"
+  description = "Número de checks consecutivos para considerar insalubre"
   type        = number
   default     = 3
-  validation {
-    condition     = var.health_check_unhealthy_threshold >= 2 && var.health_check_unhealthy_threshold <= 10
-    error_message = "Health check unhealthy threshold deve estar entre 2 e 10."
-  }
 }
 
 variable "health_check_matcher" {
-  description = "Matcher de HTTP codes (ex.: 200-399)"
+  description = "Códigos HTTP que indicam sucesso (ex: 200-399)"
   type        = string
   default     = "200-399"
 }
 
-# =============================================================================
-# TARGET GROUP ADVANCED
-# =============================================================================
-
-variable "tg_advanced" {
-  description = "Configurações avançadas do Target Group"
-  type = object({
-    deregistration_delay              = optional(number)
-    connection_termination            = optional(bool)
-    slow_start                        = optional(number)
-    proxy_protocol_v2                 = optional(bool)
-    load_balancing_algorithm_type     = optional(string)
-    load_balancing_cross_zone_enabled = optional(string)
-    stickiness = optional(object({
-      enabled         = bool
-      type            = string
-      cookie_duration = optional(number)
-      cookie_name     = optional(string)
-    }))
-    protocol_version   = optional(string)
-    ip_address_type    = optional(string)
-    preserve_client_ip = optional(string)
-  })
-  default = null
-}
-
-# =============================================================================
-# ECR
-# =============================================================================
-
-variable "enable_ecr" {
-  description = "Habilita o módulo ECR para criar repositório de containers"
-  type        = bool
-  default     = true
-}
-
-variable "ecr_repository_name" {
-  description = "Nome do repositório ECR. Se não especificado, usa application-environment"
-  type        = string
-  default     = ""
-}
-
-variable "repository_type" {
-  description = "Tipo do repositório ECR: private ou public"
-  type        = string
-  default     = "private"
-  validation {
-    condition     = contains(["private", "public"], var.repository_type)
-    error_message = "Repository type deve ser private ou public."
-  }
-}
-
-variable "repository_image_tag_mutability" {
-  description = "Configuração de mutabilidade das tags: MUTABLE, MUTABLE_WITH_EXCLUSION, IMMUTABLE ou IMMUTABLE_WITH_EXCLUSION"
-  type        = string
-  default     = "MUTABLE"
-  validation {
-    condition = contains([
-      "MUTABLE",
-      "MUTABLE_WITH_EXCLUSION",
-      "IMMUTABLE",
-      "IMMUTABLE_WITH_EXCLUSION"
-    ], var.repository_image_tag_mutability)
-    error_message = "Image tag mutability deve ser MUTABLE, MUTABLE_WITH_EXCLUSION, IMMUTABLE ou IMMUTABLE_WITH_EXCLUSION."
-  }
-}
-
-variable "repository_encryption_type" {
-  description = "Tipo de criptografia para o repositório: KMS ou AES256"
-  type        = string
-  default     = "AES256"
-  validation {
-    condition     = contains(["KMS", "AES256"], var.repository_encryption_type)
-    error_message = "Encryption type deve ser KMS ou AES256."
-  }
-}
-
-variable "repository_kms_key" {
-  description = "ARN da chave KMS para criptografia (obrigatório se encryption_type = KMS)"
-  type        = string
-  default     = null
-  validation {
-    condition     = var.repository_encryption_type == "KMS" ? length(trimspace(coalesce(var.repository_kms_key, ""))) > 0 : true
-    error_message = "repository_kms_key é obrigatório quando repository_encryption_type = KMS."
-  }
-}
-
-variable "repository_image_scan_on_push" {
-  description = "Habilita scan de vulnerabilidades ao fazer push de imagens"
-  type        = bool
-  default     = true
-}
-
-variable "repository_force_delete" {
-  description = "Permite deletar o repositório mesmo se contiver imagens"
-  type        = bool
-  default     = false
-}
-
-# Acesso
-variable "repository_read_access_arns" {
-  description = "ARNs de usuários/roles com acesso de leitura ao repositório"
-  type        = list(string)
-  default     = []
-}
-
-variable "repository_read_write_access_arns" {
-  description = "ARNs de usuários/roles com acesso de leitura/escrita ao repositório"
-  type        = list(string)
-  default     = []
-}
-
-variable "repository_lambda_read_access_arns" {
-  description = "ARNs de funções Lambda com acesso de leitura ao repositório"
-  type        = list(string)
-  default     = []
-}
-
-# Lifecycle
-variable "create_lifecycle_policy" {
-  description = "Cria política de lifecycle para limpeza automática de imagens"
-  type        = bool
-  default     = true
-}
-
-variable "repository_lifecycle_policy" {
-  description = "Política de lifecycle em formato JSON para gerenciar retenção de imagens"
-  type        = string
-  default     = ""
-}
-
-variable "max_image_count" {
-  description = "Número máximo de imagens a manter por tag prefix (usado se repository_lifecycle_policy estiver vazio)"
-  type        = number
-  default     = 10
-}
-
-variable "untagged_image_retention_days" {
-  description = "Número de dias para manter imagens sem tags antes de expirá-las"
-  type        = number
-  default     = 7
-}
-
-# Público
-variable "public_repository_catalog_data" {
-  description = "Dados do catálogo para repositório público"
-  type = object({
-    about_text        = optional(string)
-    architectures     = optional(list(string))
-    description       = optional(string)
-    logo_image_blob   = optional(string)
-    operating_systems = optional(list(string))
-    usage_text        = optional(string)
-  })
-  default = null
-}
-
-# Recursos avançados
-variable "enable_registry_scanning" {
-  description = "Habilita configuração de scanning a nível de registry"
-  type        = bool
-  default     = false
-}
-
-variable "registry_scan_type" {
-  description = "Tipo de scan do registry: ENHANCED ou BASIC"
-  type        = string
-  default     = "ENHANCED"
-  validation {
-    condition     = contains(["ENHANCED", "BASIC"], var.registry_scan_type)
-    error_message = "Registry scan type deve ser ENHANCED ou BASIC."
-  }
-}
-
-variable "enable_cross_region_replication" {
-  description = "Habilita replicação cross-region do registry"
-  type        = bool
-  default     = false
-}
-
-variable "replication_destinations" {
-  description = "Lista de regiões de destino para replicação"
-  type = list(object({
-    region      = string
-    registry_id = optional(string)
-  }))
-  default = []
-}
-
-variable "pull_through_cache_rules" {
-  description = "Regras de pull through cache para registries externos"
-  type = map(object({
-    ecr_repository_prefix      = string
-    upstream_registry_url      = string
-    credential_arn             = optional(string)
-    upstream_repository_prefix = optional(string)
-  }))
-  default = {}
-}
-
-# =============================================================================
-# ECS (CLUSTER & SERVICES)
-# =============================================================================
-
-variable "enable_ecs" {
-  description = "Habilita o módulo ECS para criar cluster e serviços"
-  type        = bool
-  default     = true
-}
-
-variable "ecs_cluster_name" {
-  description = "Nome do cluster ECS. Se não especificado, usa project_name-environment"
-  type        = string
-  default     = ""
-}
-
-variable "enable_container_insights" {
-  description = "Habilita CloudWatch Container Insights no cluster"
-  type        = bool
-  default     = true
-}
-
-variable "cluster_execute_command_logging" {
-  description = "Habilita logging para Execute Command no cluster"
-  type        = bool
-  default     = true
-}
-
-variable "cluster_kms_key_id" {
-  description = "ARN da chave KMS para criptografia do cluster"
-  type        = string
-  default     = null
-}
-
-# Capacity providers
-variable "enable_fargate" {
-  description = "Habilita Fargate como capacity provider"
-  type        = bool
-  default     = true
-}
-
-variable "enable_fargate_spot" {
-  description = "Habilita Fargate Spot como capacity provider"
-  type        = bool
-  default     = false
-}
-
-variable "fargate_capacity_provider_strategy" {
-  description = "Estratégia de capacity provider para Fargate"
-  type = object({
-    base   = optional(number, 1)
-    weight = optional(number, 100)
-  })
-  default = {
-    base   = 1
-    weight = 100
-  }
-}
-
-variable "fargate_spot_capacity_provider_strategy" {
-  description = "Estratégia de capacity provider para Fargate Spot"
-  type = object({
-    base   = optional(number, 0)
-    weight = optional(number, 0)
-  })
-  default = {
-    base   = 0
-    weight = 0
-  }
-}
-
-# Services (mapa de services)
-variable "ecs_services" {
-  description = "Configuração dos serviços ECS a serem criados"
-  type = map(object({
-    # Service
-    create                 = optional(bool, true)
-    desired_count          = optional(number, 1)
-    launch_type            = optional(string, "FARGATE")
-    platform_version       = optional(string, "LATEST")
-    enable_execute_command = optional(bool, false)
-    force_new_deployment   = optional(bool, false)
-    wait_for_steady_state  = optional(bool, false)
-
-    # Deployment
-    deployment_maximum_percent         = optional(number, 200)
-    deployment_minimum_healthy_percent = optional(number, 100)
-    deployment_circuit_breaker = optional(object({
-      enable   = bool
-      rollback = bool
-      }), {
-      enable   = true
-      rollback = true
-    })
-
-    # Network
-    assign_public_ip   = optional(bool, false)
-    security_group_ids = optional(list(string), [])
-    subnet_ids         = list(string)
-
-    # Load Balancer
-    load_balancer = optional(object({
-      target_group_arn = string
-      container_name   = string
-      container_port   = number
-    }))
-
-    # Task definition (task-level)
-    cpu    = optional(number, 256)
-    memory = optional(number, 512)
-
-    # Containers
-    container_definitions = map(object({
-      create             = optional(bool, true)
-      image              = string
-      essential          = optional(bool, true)
-      cpu                = optional(number, 0)
-      memory             = optional(number)
-      memory_reservation = optional(number)
-
-      portMappings = optional(list(object({
-        containerPort = number
-        hostPort      = optional(number)
-        protocol      = optional(string, "tcp")
-        name          = optional(string)
-        appProtocol   = optional(string)
-      })), [])
-
-      environment = optional(list(object({
-        name  = string
-        value = string
-      })), [])
-
-      secrets = optional(list(object({
-        name       = string
-        value_from = string
-      })), [])
-
-      health_check = optional(object({
-        command      = list(string)
-        interval     = optional(number, 30)
-        timeout      = optional(number, 5)
-        retries      = optional(number, 3)
-        start_period = optional(number, 0)
-      }))
-
-      enable_cloudwatch_logging = optional(bool, true)
-      log_group_retention_days  = optional(number, 7)
-
-      working_directory = optional(string)
-      user              = optional(string)
-
-      command     = optional(list(string))
-      entry_point = optional(list(string))
-
-      readonly_root_filesystem = optional(bool, false)
-      privileged               = optional(bool, false)
-
-      depends_on = optional(list(object({
-        container_name = string
-        condition      = string
-      })), [])
-    }))
-
-    # Auto Scaling
-    enable_autoscaling             = optional(bool, false)
-    autoscaling_min_capacity       = optional(number, 1)
-    autoscaling_max_capacity       = optional(number, 10)
-    autoscaling_target_cpu         = optional(number, 70)
-    autoscaling_target_memory      = optional(number, 80)
-    autoscaling_scale_in_cooldown  = optional(number, 300)
-    autoscaling_scale_out_cooldown = optional(number, 60)
-
-    autoscaling_request_count = optional(object({
-      enabled            = optional(bool, false)
-      resource_label     = string
-      target_value       = optional(number, 1000)
-      scale_in_cooldown  = optional(number, 300)
-      scale_out_cooldown = optional(number, 60)
-    }), null)
-
-    # Tags específicas do service
-    service_tags = optional(map(string), {})
-  }))
-  default = {}
-}
-
-# Task execution role
-variable "create_task_execution_role" {
-  description = "Cria role de execução de tasks compartilhada no cluster"
-  type        = bool
-  default     = true
-}
-
-variable "task_execution_role_name" {
-  description = "Nome da role de execução de tasks"
-  type        = string
-  default     = ""
-}
-
-variable "additional_task_execution_policies" {
-  description = "Políticas IAM adicionais para anexar à role de execução"
-  type        = list(string)
-  default     = []
-}
-
-variable "ssm_parameters_arns" {
-  description = "ARNs de parâmetros SSM que as tasks podem acessar"
-  type        = list(string)
-  default     = []
-}
-
-variable "secrets_manager_arns" {
-  description = "ARNs de secrets do Secrets Manager que as tasks podem acessar"
-  type        = list(string)
-  default     = []
-}
-
-# Logging do cluster ECS
-variable "ecs_log_group_retention" {
-  description = "Dias de retenção para logs do cluster ECS"
-  type        = number
-  default     = 90
-}
-
-variable "ecs_log_group_kms_key" {
-  description = "ARN da chave KMS para criptografia dos logs"
-  type        = string
-  default     = null
-}
-
-# Alarmes do cluster ECS
-variable "create_ecs_alarms" {
-  description = "Cria alarmes críticos de observabilidade para o cluster ECS"
-  type        = bool
-  default     = false
-}
-
-variable "ecs_alarm_actions" {
-  description = "Lista de ARNs (SNS, SSM, etc.) a serem acionados quando o alarme for disparado"
-  type        = list(string)
-  default     = []
-}
-
-variable "ecs_alarm_ok_actions" {
-  description = "Lista de ARNs acionados quando o alarme retornar ao estado OK"
-  type        = list(string)
-  default     = []
-}
-
-variable "ecs_alarm_insufficient_data_actions" {
-  description = "Lista de ARNs acionados quando o alarme estiver em estado de dados insuficientes"
-  type        = list(string)
-  default     = []
-}
-
-variable "ecs_alarm_treat_missing_data" {
-  description = "Comportamento para pontos de dados ausentes (notBreaching, breaching, ignore, missing)"
-  type        = string
-  default     = "notBreaching"
-  validation {
-    condition     = contains(["breaching", "notBreaching", "ignore", "missing"], var.ecs_alarm_treat_missing_data)
-    error_message = "ecs_alarm_treat_missing_data deve ser breaching, notBreaching, ignore ou missing."
-  }
-}
-
-variable "ecs_cpu_alarm_threshold" {
-  description = "Percentual de CPU do cluster ECS que dispara o alarme"
+variable "port" {
+  description = "Porta do Load Balancer"
   type        = number
   default     = 80
-  validation {
-    condition     = var.ecs_cpu_alarm_threshold > 0 && var.ecs_cpu_alarm_threshold <= 100
-    error_message = "ecs_cpu_alarm_threshold deve estar entre 1 e 100."
-  }
 }
 
-variable "ecs_cpu_alarm_evaluation_periods" {
-  description = "Quantidade de períodos que a métrica deve violar o limiar para disparar o alarme"
-  type        = number
-  default     = 2
-  validation {
-    condition     = var.ecs_cpu_alarm_evaluation_periods >= 1
-    error_message = "ecs_cpu_alarm_evaluation_periods deve ser no mínimo 1."
-  }
-}
-
-variable "ecs_cpu_alarm_period" {
-  description = "Período (em segundos) usado para avaliar a métrica de CPU"
-  type        = number
-  default     = 300
-  validation {
-    condition     = var.ecs_cpu_alarm_period >= 60
-    error_message = "ecs_cpu_alarm_period deve ser maior ou igual a 60 segundos."
-  }
-}
-
-variable "ecs_cpu_alarm_statistic" {
-  description = "Estatística utilizada no alarme de CPU"
+variable "protocol" {
+  description = "Protocolo do Load Balancer (HTTP ou HTTPS)"
   type        = string
-  default     = "Average"
+  default     = "HTTP"
   validation {
-    condition     = contains(["SampleCount", "Average", "Sum", "Minimum", "Maximum"], var.ecs_cpu_alarm_statistic)
-    error_message = "ecs_cpu_alarm_statistic deve ser SampleCount, Average, Sum, Minimum ou Maximum."
+    condition     = contains(["HTTP", "HTTPS"], var.protocol)
+    error_message = "O protocolo deve ser HTTP ou HTTPS."
   }
 }
 
-# =============================================================================
-# SECRETS MANAGER (GERAL)
-# =============================================================================
-
-variable "enable_secrets_manager" {
-  description = "Habilita o módulo Secrets Manager para gerenciar secrets da aplicação"
-  type        = bool
-  default     = true
+variable "target_type" {
+  description = "Tipo de target (instance, ip, lambda)"
+  type        = string
+  default     = "ip"
+  validation {
+    condition     = contains(["instance", "ip", "lambda"], var.target_type)
+    error_message = "O target_type deve ser instance, ip ou lambda."
+  }
 }
 
-variable "secrets" {
-  description = "Map de secrets a serem criados no Secrets Manager"
-  type = map(object({
-    # Basic
-    description                    = optional(string)
-    kms_key_id                     = optional(string)
-    name                           = optional(string)
-    name_prefix                    = optional(string)
-    recovery_window_in_days        = optional(number, 30)
-    force_overwrite_replica_secret = optional(bool, false)
-
-    # Conteúdo
-    secret_string            = optional(string)
-    secret_binary            = optional(string)
-    secret_string_wo         = optional(string)
-    secret_string_wo_version = optional(string)
-    ignore_secret_changes    = optional(bool, false)
-    version_stages           = optional(list(string))
-
-    # Gerar senha aleatória
-    create_random_password           = optional(bool, false)
-    random_password_length           = optional(number, 32)
-    random_password_override_special = optional(string, "!@#$%&*()-_=+[]{}<>:?")
-
-    # Replicação cross-region
-    replica = optional(map(object({
-      kms_key_id = optional(string)
-      region     = optional(string)
-    })), {})
-
-    # Policy
-    create_policy       = optional(bool, false)
-    block_public_policy = optional(bool, true)
-    policy_statements = optional(map(object({
-      sid           = optional(string)
-      actions       = optional(list(string))
-      not_actions   = optional(list(string))
-      effect        = optional(string, "Allow")
-      resources     = optional(list(string))
-      not_resources = optional(list(string))
-      principals = optional(list(object({
-        type        = string
-        identifiers = list(string)
-      })), [])
-      not_principals = optional(list(object({
-        type        = string
-        identifiers = list(string)
-      })), [])
-      condition = optional(list(object({
-        test     = string
-        values   = list(string)
-        variable = string
-      })), [])
-    })), {})
-    source_policy_documents   = optional(list(string), [])
-    override_policy_documents = optional(list(string), [])
-
-    # Rotação
-    enable_rotation     = optional(bool, false)
-    rotate_immediately  = optional(bool, false)
-    rotation_lambda_arn = optional(string, "")
-    rotation_rules = optional(object({
-      automatically_after_days = optional(number)
-      duration                 = optional(string)
-      schedule_expression      = optional(string)
-    }))
-
-    # Tags
-    tags = optional(map(string), {})
-  }))
-  default = {}
+// X-RAY
+variable "rule_name" {
+  description = "Nome da X-Ray sampling rule"
+  type        = string
+  default     = "default-sampling-rule"
 }
 
-# Defaults comuns
-variable "secrets_kms_key_id" {
-  description = "ARN da chave KMS padrão para criptografia de todos os secrets"
+variable "rule_priority" {
+  description = "Prioridade da regra de sampling"
+  type        = number
+  default     = 100
+}
+
+variable "fixed_rate" {
+  description = "Taxa de amostragem para a regra"
+  type        = number
+  default     = 0.05
+}
+
+variable "reservoir_size" {
+  description = "Reservatório de requisições por segundo"
+  type        = number
+  default     = 1
+}
+
+variable "service_name" {
+  description = "Nome do serviço alvo da regra"
+  type        = string
+  default     = "*"
+}
+
+variable "service_type" {
+  description = "Tipo do serviço (ex: AWS::ECS::Service)"
+  type        = string
+  default     = "*"
+}
+
+variable "host" {
+  description = "Host da requisição"
+  type        = string
+  default     = "*"
+}
+
+variable "http_method" {
+  description = "Método HTTP para a regra"
+  type        = string
+  default     = "*"
+}
+
+variable "url_path" {
+  description = "URL Path que será avaliado para amostragem"
+  type        = string
+  default     = "*"
+}
+
+variable "resource_arn" {
+  description = "ARN do recurso que será amostrado"
+  type        = string
+  default     = "*"
+}
+
+variable "attributes" {
+  description = "Atributos personalizados da regra"
+  type        = map(string)
+  default     = {}
+}
+
+variable "assume_role_services" {
+  description = "Serviços que poderão assumir a role (ecs-tasks, lambda, etc.)"
+  type        = list(string)
+  default     = ["ecs-tasks.amazonaws.com"]
+}
+
+// CLOUDWATCH LOGS
+variable "retention_in_days" {
+  description = "Retenção em dias para os logs"
+  type        = number
+  default     = 30
+}
+
+variable "kms_key_id" {
+  description = "KMS Key para criptografar os logs (opcional)"
   type        = string
   default     = null
 }
 
-variable "secrets_recovery_window" {
-  description = "Janela de recuperação padrão em dias para todos os secrets"
-  type        = number
-  default     = 30
-  validation {
-    condition     = var.secrets_recovery_window >= 0 && var.secrets_recovery_window <= 30
-    error_message = "Recovery window deve estar entre 0 e 30 dias."
-  }
-}
-
-variable "replication_regions" {
-  description = "Lista de regiões para replicação automática de secrets"
-  type = list(object({
-    region     = string
-    kms_key_id = optional(string)
-  }))
-  default = []
-}
-
-# =============================================================================
-# APPLICATION SECRETS (ATALHOS)
-# =============================================================================
-
-variable "create_database_secret" {
-  description = "Cria secret para credenciais do banco de dados"
-  type        = bool
-  default     = false
-}
-
-variable "database_secret_config" {
-  description = "Configuração do secret do banco de dados"
-  type = object({
-    username            = string
-    password            = optional(string)
-    engine              = string
-    host                = string
-    port                = number
-    dbname              = string
-    enable_rotation     = optional(bool, false)
-    rotation_lambda_arn = optional(string)
-    rotation_days       = optional(number, 30)
-  })
-  default = {
-    username = ""
-    engine   = ""
-    host     = ""
-    port     = 5432
-    dbname   = ""
-  }
-}
-
-variable "create_api_keys_secret" {
-  description = "Cria secret para chaves de APIs externas"
-  type        = bool
-  default     = false
-  validation {
-    condition     = var.create_api_keys_secret ? length(trimspace(var.api_keys_rotation_lambda_arn)) > 0 : true
-    error_message = "api_keys_rotation_lambda_arn deve ser informado quando create_api_keys_secret for verdadeiro."
-  }
-}
-
-variable "api_keys_config" {
-  description = "Mapeamento de chaves de API existentes no Secrets Manager que devem ser agregadas"
+variable "metric_filters" {
+  description = "Filtros de métricas opcionais"
   type = map(object({
-    secret_arn    = string
-    version_stage = optional(string, "AWSCURRENT")
+    pattern          = string
+    metric_name      = string
+    metric_namespace = string
+    metric_value     = string
   }))
   default = {}
 }
 
-variable "api_keys_rotation_lambda_arn" {
-  description = "ARN da função Lambda responsável por rotacionar o secret agregador de API keys"
+variable "destination_arn" {
+  description = "ARN da destination para logs (Lambda/Kinesis/etc.)"
+  type        = string
+  default     = null
+}
+
+variable "subscription_filter_pattern" {
+  description = "Padrão de filtro para o Subscription Filter"
   type        = string
   default     = ""
 }
 
-variable "api_keys_rotation_days" {
-  description = "Frequência (em dias) da rotação automática do secret de API keys"
-  type        = number
-  default     = 30
-  validation {
-    condition     = var.api_keys_rotation_days >= 7 && var.api_keys_rotation_days <= 90
-    error_message = "api_keys_rotation_days deve estar entre 7 e 90 dias."
-  }
+variable "subscription_role_arn" {
+  description = "IAM Role ARN para Subscription Filter (se necessário)"
+  type        = string
+  default     = null
 }
 
-variable "additional_secret_reader_arns" {
-  description = "ARNs adicionais (além da task execution role) com permissão de leitura aos secrets gerenciados"
-  type        = list(string)
-  default     = []
-}
-
-variable "create_app_secrets" {
-  description = "Cria secrets específicos da aplicação"
-  type        = bool
-  default     = false
-}
-
-variable "app_secrets_config" {
-  description = "Configuração dos secrets da aplicação"
-  type = map(object({
-    value                  = optional(string)
-    create_random_password = optional(bool, false)
-    password_length        = optional(number, 32)
-    description            = optional(string)
-  }))
-  default   = {}
-  sensitive = true
+variable "aws_resource" {
+  description = "Nome do recurso AWS para prefixar os logs"
+  type        = string
+  default     = "cloudwatch"
 }

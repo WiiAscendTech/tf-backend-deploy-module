@@ -14,7 +14,6 @@ crash.*.log
 # control as they are data points which are potentially sensitive and subject 
 # to change depending on the environment.
 *.tfvars
-!terraform.tfvars
 *.tfvars.json
 
 # Ignore override files as they are usually used to override resources locally and so
@@ -37,26 +36,19 @@ terraform.rc
 # Ignore Mac .DS_Store files
 .DS_Store
 
-# Ignore editor-specific files
-.vscode/
+# Ignore vim swap files
 *.swp
 *.swo
 *~
 
-# Ignore log files
-*.log
+# Ignore IDE files
+.vscode/
+.idea/
+*.iml
 
 # Ignore backup files
 *.backup
 *.bak
 
-# Ignore temporary files
-*.tmp
-*.temp
-
-# Ignore environment-specific files
-.env
-.env.*
-
-# Ignore lock files (uncomment if you want to ignore them)
-.terraform.lock.hcl
+# Ignore lock files (uncomment if you want to ignore lock files)
+# .terraform.lock.hcl
