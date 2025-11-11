@@ -4,8 +4,17 @@ locals {
   adot_log_configuration = var.enable_firelens && !var.enable_cloudwatch_logs ? {
     logDriver = "awsfirelens"
     options = {
-      Name = "forward"
-      Tag  = "{{.Name}}"
+      # FireLens OUTPUT direto para S3 (compatível com Fargate)
+      Name                         = "s3"
+      region                       = var.region
+      bucket                       = var.s3_logs_bucket_name
+      total_file_size              = var.fluent_total_file_size
+      upload_timeout               = var.fluent_upload_timeout
+      compression                  = var.fluent_compression
+      use_put_object               = "On"
+      s3_key_format                = "/${var.s3_logs_prefix}/year=%Y/month=%m/day=%d/app=${var.application}/env=${var.environment}/container={{.Name}}/task=$(ecs_task_arn)/%H-%M-%S-%L.gz"
+      s3_key_format_tag_delimiters = ".-_"
+      storage_class                = var.s3_logs_storage_class
     }
   } : var.enable_cloudwatch_logs ? {
     logDriver = "awslogs"

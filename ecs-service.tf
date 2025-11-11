@@ -51,8 +51,7 @@ locals {
     firelensConfiguration = {
       type = "fluentbit"
       options = {
-        "config-file-type"  = "s3"
-        "config-file-value" = aws_s3_object.firelens_config[0].arn
+        enable-ecs-log-metadata = "true"
       }
     },
     environment = [
