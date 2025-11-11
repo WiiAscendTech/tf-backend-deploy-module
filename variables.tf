@@ -43,7 +43,7 @@ variable "tags" {
 }
 
 # =============================================================================
-# ADOT CONFIGURATION VARIABLES
+# ADOT CONFIGURATION
 # =============================================================================
 
 variable "enable_adot" {
@@ -117,7 +117,7 @@ variable "assume_role_arn" {
 }
 
 # =============================================================================
-# LOGGING CONFIGURATION
+# LOGGING (ADOT)
 # =============================================================================
 
 variable "log_group" {
@@ -137,7 +137,7 @@ variable "log_stream_prefix" {
 }
 
 # =============================================================================
-# ADDITIONAL CONFIGURATION
+# ADOT EXTRAS
 # =============================================================================
 
 variable "adot_environment_variables" {
@@ -156,7 +156,7 @@ variable "volume_name" {
 }
 
 # =============================================================================
-# ALB ROUTING CONFIGURATION
+# ALB ROUTING
 # =============================================================================
 
 variable "enable_alb_routing" {
@@ -169,12 +169,20 @@ variable "listener_arn" {
   description = "ARN do Listener (443/80) no ALB compartilhado"
   type        = string
   default     = ""
+  validation {
+    condition     = var.enable_alb_routing ? length(trimspace(var.listener_arn)) > 0 : true
+    error_message = "listener_arn é obrigatório quando enable_alb_routing = true."
+  }
 }
 
 variable "vpc_id" {
   description = "VPC onde o Target Group será criado"
   type        = string
   default     = ""
+  validation {
+    condition     = var.enable_alb_routing ? length(trimspace(var.vpc_id)) > 0 : true
+    error_message = "vpc_id é obrigatório quando enable_alb_routing = true."
+  }
 }
 
 variable "priority" {
@@ -239,8 +247,25 @@ variable "protocol_version" {
   }
 }
 
+# Regras extras
+variable "lambda_function_arn" {
+  description = "ARN da função Lambda quando target_type = lambda"
+  type        = string
+  default     = null
+  validation {
+    condition     = var.target_type == "lambda" ? length(trimspace(coalesce(var.lambda_function_arn, ""))) > 0 : true
+    error_message = "lambda_function_arn é obrigatório quando target_type = \"lambda\"."
+  }
+}
+
+variable "lambda_attach_permission" {
+  description = "Cria aws_lambda_permission para o ALB invocar a função"
+  type        = bool
+  default     = true
+}
+
 # =============================================================================
-# HEALTH CHECK CONFIGURATION
+# HEALTH CHECK (ALB TG)
 # =============================================================================
 
 variable "health_check_path" {
@@ -296,7 +321,7 @@ variable "health_check_matcher" {
 }
 
 # =============================================================================
-# TARGET GROUP ADVANCED CONFIGURATION
+# TARGET GROUP ADVANCED
 # =============================================================================
 
 variable "tg_advanced" {
@@ -322,23 +347,7 @@ variable "tg_advanced" {
 }
 
 # =============================================================================
-# LAMBDA CONFIGURATION (when target_type = lambda)
-# =============================================================================
-
-variable "lambda_function_arn" {
-  description = "ARN da função Lambda quando target_type = lambda"
-  type        = string
-  default     = null
-}
-
-variable "lambda_attach_permission" {
-  description = "Cria aws_lambda_permission para o ALB invocar a função"
-  type        = bool
-  default     = true
-}
-
-# =============================================================================
-# ECR CONFIGURATION
+# ECR
 # =============================================================================
 
 variable "enable_ecr" {
@@ -369,9 +378,9 @@ variable "repository_image_tag_mutability" {
   default     = "MUTABLE"
   validation {
     condition = contains([
-      "MUTABLE", 
-      "MUTABLE_WITH_EXCLUSION", 
-      "IMMUTABLE", 
+      "MUTABLE",
+      "MUTABLE_WITH_EXCLUSION",
+      "IMMUTABLE",
       "IMMUTABLE_WITH_EXCLUSION"
     ], var.repository_image_tag_mutability)
     error_message = "Image tag mutability deve ser MUTABLE, MUTABLE_WITH_EXCLUSION, IMMUTABLE ou IMMUTABLE_WITH_EXCLUSION."
@@ -392,6 +401,10 @@ variable "repository_kms_key" {
   description = "ARN da chave KMS para criptografia (obrigatório se encryption_type = KMS)"
   type        = string
   default     = null
+  validation {
+    condition     = var.repository_encryption_type == "KMS" ? length(trimspace(coalesce(var.repository_kms_key, ""))) > 0 : true
+    error_message = "repository_kms_key é obrigatório quando repository_encryption_type = KMS."
+  }
 }
 
 variable "repository_image_scan_on_push" {
@@ -406,10 +419,7 @@ variable "repository_force_delete" {
   default     = false
 }
 
-# =============================================================================
-# ECR ACCESS CONTROL
-# =============================================================================
-
+# Acesso
 variable "repository_read_access_arns" {
   description = "ARNs de usuários/roles com acesso de leitura ao repositório"
   type        = list(string)
@@ -428,10 +438,7 @@ variable "repository_lambda_read_access_arns" {
   default     = []
 }
 
-# =============================================================================
-# ECR LIFECYCLE POLICY
-# =============================================================================
-
+# Lifecycle
 variable "create_lifecycle_policy" {
   description = "Cria política de lifecycle para limpeza automática de imagens"
   type        = bool
@@ -456,10 +463,7 @@ variable "untagged_image_retention_days" {
   default     = 7
 }
 
-# =============================================================================
-# ECR PUBLIC REPOSITORY CONFIG
-# =============================================================================
-
+# Público
 variable "public_repository_catalog_data" {
   description = "Dados do catálogo para repositório público"
   type = object({
@@ -473,10 +477,7 @@ variable "public_repository_catalog_data" {
   default = null
 }
 
-# =============================================================================
-# ECR ADVANCED FEATURES
-# =============================================================================
-
+# Recursos avançados
 variable "enable_registry_scanning" {
   description = "Habilita configuração de scanning a nível de registry"
   type        = bool
@@ -520,7 +521,7 @@ variable "pull_through_cache_rules" {
 }
 
 # =============================================================================
-# ECS CONFIGURATION
+# ECS (CLUSTER & SERVICES)
 # =============================================================================
 
 variable "enable_ecs" {
@@ -553,10 +554,7 @@ variable "cluster_kms_key_id" {
   default     = null
 }
 
-# =============================================================================
-# ECS CAPACITY PROVIDERS
-# =============================================================================
-
+# Capacity providers
 variable "enable_fargate" {
   description = "Habilita Fargate como capacity provider"
   type        = bool
@@ -593,23 +591,20 @@ variable "fargate_spot_capacity_provider_strategy" {
   }
 }
 
-# =============================================================================
-# ECS SERVICES CONFIGURATION
-# =============================================================================
-
+# Services (mapa de services)
 variable "ecs_services" {
   description = "Configuração dos serviços ECS a serem criados"
   type = map(object({
-    # Service basic configuration
-    create                      = optional(bool, true)
-    desired_count              = optional(number, 1)
-    launch_type                = optional(string, "FARGATE")
-    platform_version           = optional(string, "LATEST")
-    enable_execute_command     = optional(bool, false)
-    force_new_deployment       = optional(bool, false)
-    wait_for_steady_state      = optional(bool, false)
-    
-    # Deployment configuration
+    # Service
+    create                       = optional(bool, true)
+    desired_count                = optional(number, 1)
+    launch_type                  = optional(string, "FARGATE")
+    platform_version             = optional(string, "LATEST")
+    enable_execute_command       = optional(bool, false)
+    force_new_deployment         = optional(bool, false)
+    wait_for_steady_state        = optional(bool, false)
+
+    # Deployment
     deployment_maximum_percent         = optional(number, 200)
     deployment_minimum_healthy_percent = optional(number, 100)
     deployment_circuit_breaker = optional(object({
@@ -619,33 +614,32 @@ variable "ecs_services" {
       enable   = true
       rollback = true
     })
-    
-    # Network configuration
+
+    # Network
     assign_public_ip   = optional(bool, false)
     security_group_ids = optional(list(string), [])
     subnet_ids         = list(string)
-    
-    # Load balancer configuration
+
+    # Load Balancer
     load_balancer = optional(object({
       target_group_arn = string
       container_name   = string
       container_port   = number
     }))
-    
-    # Task definition configuration
+
+    # Task definition (task-level)
     cpu    = optional(number, 256)
     memory = optional(number, 512)
-    
-    # Container definitions
-    container_definitions = map(object({
-      create        = optional(bool, true)
-      image         = string
-      essential     = optional(bool, true)
-      cpu           = optional(number, 0)
-      memory        = optional(number)
-      memory_reservation = optional(number)
 
-      # Port mappings
+    # Containers
+    container_definitions = map(object({
+      create              = optional(bool, true)
+      image               = string
+      essential           = optional(bool, true)
+      cpu                 = optional(number, 0)
+      memory              = optional(number)
+      memory_reservation  = optional(number)
+
       portMappings = optional(list(object({
         containerPort = number
         hostPort      = optional(number)
@@ -653,59 +647,52 @@ variable "ecs_services" {
         name          = optional(string)
         appProtocol   = optional(string)
       })), [])
-      
-      # Environment variables
+
       environment = optional(list(object({
         name  = string
         value = string
       })), [])
-      
-      # Secrets from SSM/Secrets Manager
+
       secrets = optional(list(object({
         name       = string
         value_from = string
       })), [])
-      
-      # Health check
+
       health_check = optional(object({
-        command     = list(string)
-        interval    = optional(number, 30)
-        timeout     = optional(number, 5)
-        retries     = optional(number, 3)
+        command      = list(string)
+        interval     = optional(number, 30)
+        timeout      = optional(number, 5)
+        retries      = optional(number, 3)
         start_period = optional(number, 0)
       }))
-      
-      # Logging
+
       enable_cloudwatch_logging = optional(bool, true)
       log_group_retention_days  = optional(number, 7)
-      
-      # Working directory and user
+
       working_directory = optional(string)
       user              = optional(string)
-      
-      # Command and entrypoint
+
       command     = optional(list(string))
       entry_point = optional(list(string))
-      
-      # Linux parameters
+
       readonly_root_filesystem = optional(bool, false)
       privileged               = optional(bool, false)
-      
-      # Dependencies
+
       depends_on = optional(list(object({
         container_name = string
         condition      = string
       })), [])
     }))
-    
+
     # Auto Scaling
-    enable_autoscaling       = optional(bool, false)
-    autoscaling_min_capacity = optional(number, 1)
-    autoscaling_max_capacity = optional(number, 10)
-    autoscaling_target_cpu   = optional(number, 70)
-    autoscaling_target_memory = optional(number, 80)
+    enable_autoscaling             = optional(bool, false)
+    autoscaling_min_capacity       = optional(number, 1)
+    autoscaling_max_capacity       = optional(number, 10)
+    autoscaling_target_cpu         = optional(number, 70)
+    autoscaling_target_memory      = optional(number, 80)
     autoscaling_scale_in_cooldown  = optional(number, 300)
     autoscaling_scale_out_cooldown = optional(number, 60)
+
     autoscaling_request_count = optional(object({
       enabled            = optional(bool, false)
       resource_label     = string
@@ -714,16 +701,13 @@ variable "ecs_services" {
       scale_out_cooldown = optional(number, 60)
     }), null)
 
-    # Service tags
+    # Tags específicas do service
     service_tags = optional(map(string), {})
   }))
   default = {}
 }
 
-# =============================================================================
-# ECS TASK EXECUTION ROLE
-# =============================================================================
-
+# Task execution role
 variable "create_task_execution_role" {
   description = "Cria role de execução de tasks compartilhada no cluster"
   type        = bool
@@ -754,10 +738,7 @@ variable "secrets_manager_arns" {
   default     = []
 }
 
-# =============================================================================
-# ECS LOGGING
-# =============================================================================
-
+# Logging do cluster ECS
 variable "ecs_log_group_retention" {
   description = "Dias de retenção para logs do cluster ECS"
   type        = number
@@ -770,6 +751,7 @@ variable "ecs_log_group_kms_key" {
   default     = null
 }
 
+# Alarmes do cluster ECS
 variable "create_ecs_alarms" {
   description = "Cria alarmes críticos de observabilidade para o cluster ECS"
   type        = bool
@@ -845,7 +827,7 @@ variable "ecs_cpu_alarm_statistic" {
 }
 
 # =============================================================================
-# SECRETS MANAGER CONFIGURATION
+# SECRETS MANAGER (GERAL)
 # =============================================================================
 
 variable "enable_secrets_manager" {
@@ -857,38 +839,37 @@ variable "enable_secrets_manager" {
 variable "secrets" {
   description = "Map de secrets a serem criados no Secrets Manager"
   type = map(object({
-    # Basic configuration
-    description                    = optional(string)
-    kms_key_id                    = optional(string)
-    name                          = optional(string)
-    name_prefix                   = optional(string)
-    recovery_window_in_days       = optional(number, 30)
-    force_overwrite_replica_secret = optional(bool, false)
+    # Basic
+    description                      = optional(string)
+    kms_key_id                       = optional(string)
+    name                             = optional(string)
+    name_prefix                      = optional(string)
+    recovery_window_in_days          = optional(number, 30)
+    force_overwrite_replica_secret   = optional(bool, false)
 
-    # Secret content
-    secret_string                 = optional(string)
-    secret_binary                = optional(string)
-    secret_string_wo             = optional(string)
-    secret_string_wo_version     = optional(string)
-    ignore_secret_changes        = optional(bool, false)
-    version_stages               = optional(list(string))
+    # Conteúdo
+    secret_string                    = optional(string)
+    secret_binary                    = optional(string)
+    secret_string_wo                 = optional(string)
+    secret_string_wo_version         = optional(string)
+    ignore_secret_changes            = optional(bool, false)
+    version_stages                   = optional(list(string))
 
-    # Random password generation
-    create_random_password              = optional(bool, false)
-    random_password_length             = optional(number, 32)
-    random_password_override_special   = optional(string, "!@#$%&*()-_=+[]{}<>:?")
+    # Gerar senha aleatória
+    create_random_password           = optional(bool, false)
+    random_password_length           = optional(number, 32)
+    random_password_override_special = optional(string, "!@#$%&*()-_=+[]{}<>:?")
 
-    # Cross-region replication
+    # Replicação cross-region
     replica = optional(map(object({
       kms_key_id = optional(string)
       region     = optional(string)
     })), {})
 
-    # Policy configuration
-    create_policy = optional(bool, false)
-    block_public_policy = optional(bool, true)
-    
-    policy_statements = optional(map(object({
+    # Policy
+    create_policy        = optional(bool, false)
+    block_public_policy  = optional(bool, true)
+    policy_statements    = optional(map(object({
       sid           = optional(string)
       actions       = optional(list(string))
       not_actions   = optional(list(string))
@@ -909,14 +890,13 @@ variable "secrets" {
         variable = string
       })), [])
     })), {})
-
     source_policy_documents   = optional(list(string), [])
     override_policy_documents = optional(list(string), [])
 
-    # Rotation configuration
-    enable_rotation      = optional(bool, false)
-    rotate_immediately   = optional(bool, false)
-    rotation_lambda_arn  = optional(string, "")
+    # Rotação
+    enable_rotation     = optional(bool, false)
+    rotate_immediately  = optional(bool, false)
+    rotation_lambda_arn = optional(string, "")
     rotation_rules = optional(object({
       automatically_after_days = optional(number)
       duration                 = optional(string)
@@ -929,10 +909,7 @@ variable "secrets" {
   default = {}
 }
 
-# =============================================================================
-# COMMON SECRETS CONFIGURATION
-# =============================================================================
-
+# Defaults comuns
 variable "secrets_kms_key_id" {
   description = "ARN da chave KMS padrão para criptografia de todos os secrets"
   type        = string
@@ -959,7 +936,7 @@ variable "replication_regions" {
 }
 
 # =============================================================================
-# APPLICATION SECRETS
+# APPLICATION SECRETS (ATALHOS)
 # =============================================================================
 
 variable "create_database_secret" {
@@ -971,15 +948,15 @@ variable "create_database_secret" {
 variable "database_secret_config" {
   description = "Configuração do secret do banco de dados"
   type = object({
-    username               = string
-    password              = optional(string)
-    engine                = string
-    host                  = string
-    port                  = number
-    dbname                = string
-    enable_rotation       = optional(bool, false)
-    rotation_lambda_arn   = optional(string)
-    rotation_days         = optional(number, 30)
+    username             = string
+    password             = optional(string)
+    engine               = string
+    host                 = string
+    port                 = number
+    dbname               = string
+    enable_rotation      = optional(bool, false)
+    rotation_lambda_arn  = optional(string)
+    rotation_days        = optional(number, 30)
   })
   default = {
     username = ""
@@ -1043,8 +1020,8 @@ variable "app_secrets_config" {
     value                  = optional(string)
     create_random_password = optional(bool, false)
     password_length        = optional(number, 32)
-    description           = optional(string)
+    description            = optional(string)
   }))
-  default = {}
+  default   = {}
   sensitive = true
 }

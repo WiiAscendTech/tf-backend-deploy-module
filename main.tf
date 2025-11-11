@@ -26,12 +26,12 @@ module "adot" {
   source = "./aws-adot"
 
   # Common configuration
-  environment    = var.environment
-  project_name   = var.project_name
-  owner          = var.owner
-  application    = var.application
-  region         = var.region
-  tags           = local.common_tags
+  environment  = var.environment
+  project_name = var.project_name
+  owner        = var.owner
+  application  = var.application
+  region       = var.region
+  tags         = local.common_tags
 
   # ADOT specific configuration
   container_name = var.adot_container_name
@@ -48,12 +48,12 @@ module "adot" {
   assume_role_arn      = var.assume_role_arn
 
   # Logging configuration
-  log_group          = var.log_group
-  log_stream_prefix  = var.log_stream_prefix
+  log_group         = var.log_group
+  log_stream_prefix = var.log_stream_prefix
 
   # Additional configuration
   environment_variables = var.adot_environment_variables
-  volume_name          = var.volume_name
+  volume_name           = var.volume_name
 }
 
 # =============================================================================
@@ -70,13 +70,13 @@ module "alb_routing" {
   tags        = local.common_tags
 
   # ALB configuration
-  listener_arn   = var.listener_arn
-  vpc_id         = var.vpc_id
-  priority       = var.priority
+  listener_arn = var.listener_arn
+  vpc_id       = var.vpc_id
+  priority     = var.priority
 
   # Routing configuration
-  host_headers   = var.host_headers
-  path_patterns  = var.path_patterns
+  host_headers  = var.host_headers
+  path_patterns = var.path_patterns
 
   # Target Group configuration
   target_type      = var.target_type
@@ -85,12 +85,12 @@ module "alb_routing" {
   protocol_version = var.protocol_version
 
   # Health check configuration
-  health_check_path               = var.health_check_path
-  health_check_interval           = var.health_check_interval
-  health_check_timeout            = var.health_check_timeout
-  health_check_healthy_threshold  = var.health_check_healthy_threshold
+  health_check_path                = var.health_check_path
+  health_check_interval            = var.health_check_interval
+  health_check_timeout             = var.health_check_timeout
+  health_check_healthy_threshold   = var.health_check_healthy_threshold
   health_check_unhealthy_threshold = var.health_check_unhealthy_threshold
-  health_check_matcher            = var.health_check_matcher
+  health_check_matcher             = var.health_check_matcher
 
   # Advanced configuration
   tg_advanced = var.tg_advanced
@@ -107,7 +107,7 @@ module "alb_routing" {
 locals {
   # Nome do repositório ECR baseado na aplicação e ambiente
   ecr_repository_name = var.ecr_repository_name != "" ? var.ecr_repository_name : "${var.application}-${var.environment}"
-  
+
   # Política de lifecycle padrão se não especificada
   default_lifecycle_policy = jsonencode({
     rules = [
@@ -152,7 +152,7 @@ locals {
       }
     ]
   })
-  
+
   # Regras de scan padrão
   default_scan_rules = [
     {
@@ -165,7 +165,7 @@ locals {
       ]
     }
   ]
-  
+
   # Regras de replicação se habilitadas
   replication_rules = var.enable_cross_region_replication && length(var.replication_destinations) > 0 ? [
     {
@@ -185,22 +185,22 @@ module "ecr" {
   source = "./aws-ecr"
 
   # Basic configuration
-  create            = true
-  repository_name   = local.ecr_repository_name
-  repository_type   = var.repository_type
-  region           = var.region
-  tags             = local.common_tags
+  create          = true
+  repository_name = local.ecr_repository_name
+  repository_type = var.repository_type
+  region          = var.region
+  tags            = local.common_tags
 
   # Repository configuration
   repository_image_tag_mutability = var.repository_image_tag_mutability
   repository_encryption_type      = var.repository_encryption_type
-  repository_kms_key             = var.repository_kms_key
-  repository_image_scan_on_push  = var.repository_image_scan_on_push
-  repository_force_delete        = var.repository_force_delete
+  repository_kms_key              = var.repository_kms_key
+  repository_image_scan_on_push   = var.repository_image_scan_on_push
+  repository_force_delete         = var.repository_force_delete
 
   # Access control
-  repository_read_access_arns       = var.repository_read_access_arns
-  repository_read_write_access_arns = var.repository_read_write_access_arns
+  repository_read_access_arns        = var.repository_read_access_arns
+  repository_read_write_access_arns  = var.repository_read_write_access_arns
   repository_lambda_read_access_arns = var.repository_lambda_read_access_arns
 
   # Lifecycle policy
@@ -230,10 +230,10 @@ module "ecr" {
 locals {
   # Nome do cluster ECS baseado no projeto e ambiente
   ecs_cluster_name = var.ecs_cluster_name != "" ? var.ecs_cluster_name : "${var.project_name}-${var.environment}"
-  
+
   # Nome da role de execução de tasks
   task_execution_role_name = var.task_execution_role_name != "" ? var.task_execution_role_name : "${local.ecs_cluster_name}-task-execution"
-  
+
   # Capacity provider strategy baseada nas configurações
   capacity_provider_strategy = merge(
     var.enable_fargate ? {
@@ -251,7 +251,7 @@ locals {
       }
     } : {}
   )
-  
+
   # Configuração do cluster com execute command
   cluster_configuration = {
     execute_command_configuration = var.cluster_execute_command_logging ? {
@@ -266,16 +266,16 @@ locals {
       kms_key_id                           = var.cluster_kms_key_id
     } : null
   }
-  
+
   # Processamento dos serviços ECS
   processed_services = { for service_name, service_config in var.ecs_services : service_name => merge(service_config, {
     # Configuração automática de nomes
     name   = service_name
     family = "${service_name}-${var.environment}"
-    
+
     # Network configuration
     vpc_id = var.vpc_id
-    
+
     # Security group automático se não especificado
     create_security_group = length(service_config.security_group_ids) == 0 ? true : false
     security_group_name   = "${service_name}-${var.environment}"
@@ -290,7 +290,7 @@ locals {
           ])[0],
           80
         )
-        to_port     = try(
+        to_port = try(
           flatten([
             for container_definition in values(service_config.container_definitions) : [
               for mapping in try(container_definition.portMappings, []) : mapping.containerPort
@@ -311,10 +311,10 @@ locals {
         description = "All outbound traffic"
       }
     }
-    
+
     # Task execution role configuration
-    create_task_exec_iam_role = false  # Usa a role compartilhada do cluster
-    
+    create_task_exec_iam_role = false # Usa a role compartilhada do cluster
+
     # Container definitions processadas
     container_definitions = {
       for container_name, container_config in service_config.container_definitions :
@@ -374,7 +374,7 @@ locals {
       })
       if try(container_config.create, true)
     }
-    
+
     # Auto scaling configuration
     autoscaling_policies = service_config.enable_autoscaling ? merge({
       cpu_scaling = {
@@ -399,7 +399,7 @@ locals {
           scale_out_cooldown = service_config.autoscaling_scale_out_cooldown
         }
       }
-    }, service_config.autoscaling_request_count != null && try(service_config.autoscaling_request_count.enabled, false) ? {
+      }, service_config.autoscaling_request_count != null && try(service_config.autoscaling_request_count.enabled, false) ? {
       request_count_scaling = {
         policy_type = "TargetTrackingScaling"
         target_tracking_scaling_policy_configuration = {
@@ -413,10 +413,10 @@ locals {
         }
       }
     } : {}) : {}
-    
+
     # Capacity provider strategy
     capacity_provider_strategy = local.capacity_provider_strategy
-    
+
     # Load balancer configuration
     load_balancer = service_config.load_balancer != null ? {
       main = {
@@ -425,7 +425,7 @@ locals {
         container_port   = service_config.load_balancer.container_port
       }
     } : {}
-  })}
+  }) }
 }
 
 module "ecs" {
@@ -459,10 +459,10 @@ module "ecs" {
   create_task_exec_iam_role = var.create_task_execution_role
   task_exec_iam_role_name   = local.task_execution_role_name
   task_exec_iam_role_policies = {
-    for idx, policy_arn in var.additional_task_execution_policies : 
+    for idx, policy_arn in var.additional_task_execution_policies :
     "additional_${idx}" => policy_arn
   }
-  
+
   # Task execution permissions
   create_task_exec_policy  = var.create_task_execution_role
   task_exec_ssm_param_arns = var.ssm_parameters_arns
@@ -513,7 +513,7 @@ locals {
     "database" = {
       name        = "${local.resource_prefix}-database"
       description = "Database credentials for ${var.application}"
-      
+
       secret_string = jsonencode({
         username = var.database_secret_config.username
         password = var.database_secret_config.password != null ? var.database_secret_config.password : null
@@ -522,21 +522,21 @@ locals {
         port     = var.database_secret_config.port
         dbname   = var.database_secret_config.dbname
       })
-      
+
       create_random_password = var.database_secret_config.password == null ? true : false
       random_password_length = 32
-      
+
       kms_key_id              = var.secrets_kms_key_id
       recovery_window_in_days = var.secrets_recovery_window
       replica                 = local.default_replica_config
-      
+
       # Rotation configuration
       enable_rotation     = var.database_secret_config.enable_rotation
       rotation_lambda_arn = var.database_secret_config.rotation_lambda_arn
       rotation_rules = var.database_secret_config.enable_rotation ? {
         automatically_after_days = var.database_secret_config.rotation_days
       } : null
-      
+
       tags = merge(local.common_tags, {
         SecretType = "database"
         Rotation   = var.database_secret_config.enable_rotation ? "enabled" : "disabled"
@@ -604,16 +604,16 @@ locals {
     for secret_name, config in var.app_secrets_config : "app-${secret_name}" => {
       name        = "${local.resource_prefix}-${secret_name}"
       description = config.description != null ? config.description : "Application secret: ${secret_name}"
-      
+
       secret_string = config.create_random_password == false ? config.value : null
-      
-      create_random_password    = config.create_random_password
-      random_password_length   = config.password_length
-      
+
+      create_random_password = config.create_random_password
+      random_password_length = config.password_length
+
       kms_key_id              = var.secrets_kms_key_id
       recovery_window_in_days = var.secrets_recovery_window
       replica                 = local.default_replica_config
-      
+
       tags = merge(local.common_tags, {
         SecretType = "application"
         Component  = secret_name
@@ -669,24 +669,24 @@ module "secrets_manager" {
 
   # Basic configuration
   create                         = true
-  region                        = var.region
-  name                          = each.value.name
-  name_prefix                   = each.value.name_prefix
-  description                   = each.value.description
-  kms_key_id                    = each.value.kms_key_id
-  recovery_window_in_days       = each.value.recovery_window_in_days
+  region                         = var.region
+  name                           = each.value.name
+  name_prefix                    = each.value.name_prefix
+  description                    = each.value.description
+  kms_key_id                     = each.value.kms_key_id
+  recovery_window_in_days        = each.value.recovery_window_in_days
   force_overwrite_replica_secret = each.value.force_overwrite_replica_secret
 
   # Secret content
   secret_string            = each.value.secret_string
-  secret_binary           = each.value.secret_binary
-  secret_string_wo        = each.value.secret_string_wo
+  secret_binary            = each.value.secret_binary
+  secret_string_wo         = each.value.secret_string_wo
   secret_string_wo_version = each.value.secret_string_wo_version
-  ignore_secret_changes   = each.value.ignore_secret_changes
-  version_stages          = each.value.version_stages
+  ignore_secret_changes    = each.value.ignore_secret_changes
+  version_stages           = each.value.version_stages
 
   # Random password generation
-  create_random_password            = each.value.create_random_password
+  create_random_password           = each.value.create_random_password
   random_password_length           = each.value.random_password_length
   random_password_override_special = each.value.random_password_override_special
 
@@ -695,9 +695,9 @@ module "secrets_manager" {
 
   # Policy configuration
   create_policy             = each.value.create_policy
-  block_public_policy      = each.value.block_public_policy
-  policy_statements        = each.value.policy_statements
-  source_policy_documents  = each.value.source_policy_documents
+  block_public_policy       = each.value.block_public_policy
+  policy_statements         = each.value.policy_statements
+  source_policy_documents   = each.value.source_policy_documents
   override_policy_documents = each.value.override_policy_documents
 
   # Rotation configuration

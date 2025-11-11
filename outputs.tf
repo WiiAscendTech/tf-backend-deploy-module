@@ -19,14 +19,14 @@ output "adot_enabled" {
 output "adot_configuration" {
   description = "Configuração completa do módulo ADOT"
   value = var.enable_adot ? {
-    container_name        = var.adot_container_name
+    container_name       = var.adot_container_name
     image                = var.adot_image
     cpu                  = var.adot_cpu
     memory               = var.adot_memory
     enable_traces        = var.enable_traces
     enable_metrics       = var.enable_metrics
-    log_group           = var.log_group
-    log_stream_prefix   = var.log_stream_prefix
+    log_group            = var.log_group
+    log_stream_prefix    = var.log_stream_prefix
     amp_remote_write_url = var.amp_remote_write_url
   } : null
   sensitive = true
@@ -92,7 +92,7 @@ output "alb_routing_configuration" {
     path_patterns     = var.path_patterns
     host_headers      = var.host_headers
     health_check_path = var.health_check_path
-    vpc_id           = var.vpc_id
+    vpc_id            = var.vpc_id
   } : null
   sensitive = true
 }
@@ -129,15 +129,15 @@ output "ecr_enabled" {
 output "ecr_configuration" {
   description = "Configuração completa do módulo ECR"
   value = var.enable_ecr ? {
-    repository_name             = local.ecr_repository_name
-    repository_type             = var.repository_type
-    image_tag_mutability        = var.repository_image_tag_mutability
-    encryption_type             = var.repository_encryption_type
-    scan_on_push               = var.repository_image_scan_on_push
-    lifecycle_policy_enabled    = var.create_lifecycle_policy
-    registry_scanning_enabled   = var.enable_registry_scanning
-    cross_region_replication   = var.enable_cross_region_replication
-    replication_destinations   = var.replication_destinations
+    repository_name           = local.ecr_repository_name
+    repository_type           = var.repository_type
+    image_tag_mutability      = var.repository_image_tag_mutability
+    encryption_type           = var.repository_encryption_type
+    scan_on_push              = var.repository_image_scan_on_push
+    lifecycle_policy_enabled  = var.create_lifecycle_policy
+    registry_scanning_enabled = var.enable_registry_scanning
+    cross_region_replication  = var.enable_cross_region_replication
+    replication_destinations  = var.replication_destinations
   } : null
   sensitive = true
 }
@@ -183,24 +183,24 @@ output "ecs_task_execution_role_name" {
 
 output "ecs_services" {
   description = "Informações dos serviços ECS criados"
-  value       = var.enable_ecs ? {
+  value = var.enable_ecs ? {
     for service_name, service in module.ecs[0].services : service_name => {
-      id                           = service.id
-      name                         = service.name
-      arn                          = service.arn
-      cluster                      = service.cluster
-      desired_count                = service.desired_count
-      launch_type                  = service.launch_type
-      platform_version             = service.platform_version
-      task_definition              = service.task_definition
-      task_definition_family       = try(service.task_definition_family, null)
-      last_deployment_status       = try(service.deployment_status, null)
-      running_count                = try(service.running_count, null)
-      pending_count                = try(service.pending_count, null)
-      security_group_id            = try(service.security_group_id, null)
-      cloudwatch_log_group         = try(service.cloudwatch_log_group_name, null)
+      id                            = service.id
+      name                          = service.name
+      arn                           = service.arn
+      cluster                       = service.cluster
+      desired_count                 = service.desired_count
+      launch_type                   = service.launch_type
+      platform_version              = service.platform_version
+      task_definition               = service.task_definition
+      task_definition_family        = try(service.task_definition_family, null)
+      last_deployment_status        = try(service.deployment_status, null)
+      running_count                 = try(service.running_count, null)
+      pending_count                 = try(service.pending_count, null)
+      security_group_id             = try(service.security_group_id, null)
+      cloudwatch_log_group          = try(service.cloudwatch_log_group_name, null)
       service_connect_configuration = try(service.service_connect_configuration, null)
-      autoscaling_enabled          = service.autoscaling_enabled
+      autoscaling_enabled           = service.autoscaling_enabled
     }
   } : {}
 }
@@ -214,13 +214,13 @@ output "ecs_configuration" {
   description = "Configuração completa do módulo ECS"
   value = var.enable_ecs ? {
     cluster_name                    = local.ecs_cluster_name
-    container_insights_enabled     = var.enable_container_insights
+    container_insights_enabled      = var.enable_container_insights
     execute_command_logging_enabled = var.cluster_execute_command_logging
     fargate_enabled                 = var.enable_fargate
-    fargate_spot_enabled           = var.enable_fargate_spot
-    task_execution_role_name       = local.task_execution_role_name
-    log_retention_days             = var.ecs_log_group_retention
-    services_count                 = length(var.ecs_services)
+    fargate_spot_enabled            = var.enable_fargate_spot
+    task_execution_role_name        = local.task_execution_role_name
+    log_retention_days              = var.ecs_log_group_retention
+    services_count                  = length(var.ecs_services)
     capacity_providers = {
       fargate      = var.enable_fargate
       fargate_spot = var.enable_fargate_spot
@@ -237,11 +237,11 @@ output "secrets_manager_secrets" {
   description = "Informações dos secrets criados no Secrets Manager"
   value = var.enable_secrets_manager ? {
     for secret_name, secret in module.secrets_manager : secret_name => {
-      arn         = secret.secret_arn
-      id          = secret.secret_id
-      name        = secret.secret_name
-      version_id  = secret.secret_version_id
-      replica     = secret.secret_replica
+      arn        = secret.secret_arn
+      id         = secret.secret_id
+      name       = secret.secret_name
+      version_id = secret.secret_version_id
+      replica    = secret.secret_replica
     }
   } : {}
 }
@@ -278,14 +278,14 @@ output "secrets_manager_enabled" {
 output "secrets_manager_configuration" {
   description = "Configuração completa do módulo Secrets Manager"
   value = var.enable_secrets_manager ? {
-    kms_key_id                      = var.secrets_kms_key_id
-    recovery_window_days           = var.secrets_recovery_window
+    kms_key_id                       = var.secrets_kms_key_id
+    recovery_window_days             = var.secrets_recovery_window
     cross_region_replication_enabled = var.enable_cross_region_replication
-    replication_regions            = var.replication_regions
-    database_secret_enabled        = var.create_database_secret
-    api_keys_secret_enabled        = var.create_api_keys_secret
-    app_secrets_enabled            = var.create_app_secrets
-    total_secrets_count            = length(local.all_secrets)
+    replication_regions              = var.replication_regions
+    database_secret_enabled          = var.create_database_secret
+    api_keys_secret_enabled          = var.create_api_keys_secret
+    app_secrets_enabled              = var.create_app_secrets
+    total_secrets_count              = length(local.all_secrets)
     secrets_by_type = {
       custom      = length(var.secrets)
       database    = var.create_database_secret ? 1 : 0

@@ -8,15 +8,15 @@ resource "aws_lb_target_group" "this" {
   port     = var.target_type == "lambda" ? null : var.port
   protocol = var.target_type == "lambda" ? null : var.protocol
 
-  connection_termination = try(var.tg_advanced.connection_termination, null)
-  deregistration_delay   = try(var.tg_advanced.deregistration_delay, null)
-  slow_start             = try(var.tg_advanced.slow_start, null)
-  proxy_protocol_v2      = try(var.tg_advanced.proxy_protocol_v2, null)
+  connection_termination            = try(var.tg_advanced.connection_termination, null)
+  deregistration_delay              = try(var.tg_advanced.deregistration_delay, null)
+  slow_start                        = try(var.tg_advanced.slow_start, null)
+  proxy_protocol_v2                 = try(var.tg_advanced.proxy_protocol_v2, null)
   load_balancing_algorithm_type     = try(var.tg_advanced.load_balancing_algorithm_type, null)
   load_balancing_cross_zone_enabled = try(var.tg_advanced.load_balancing_cross_zone_enabled, null)
-  protocol_version = try(var.tg_advanced.protocol_version, var.protocol_version, null)
-  ip_address_type  = try(var.tg_advanced.ip_address_type, null)
-  preserve_client_ip = try(var.tg_advanced.preserve_client_ip, null)
+  protocol_version                  = try(var.tg_advanced.protocol_version, var.protocol_version, null)
+  ip_address_type                   = try(var.tg_advanced.ip_address_type, null)
+  preserve_client_ip                = try(var.tg_advanced.preserve_client_ip, null)
 
   dynamic "stickiness" {
     for_each = var.tg_advanced != null && var.tg_advanced.stickiness != null ? [var.tg_advanced.stickiness] : []
@@ -48,7 +48,7 @@ resource "aws_lb_target_group" "this" {
   tags = merge(
     var.tags,
     {
-      Name = "${var.application}-tg-${var.environment}"
+      Name  = "${var.application}-tg-${var.environment}"
       "app" = var.application
       "env" = var.environment
     }

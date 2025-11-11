@@ -48,35 +48,35 @@ module "backend_deploy" {
   tg_advanced        = var.alb_target_group_advanced_configuration
 
   # Repositório ECR e configurações globais
-  enable_ecr                      = var.enable_ecr
-  repository_image_tag_mutability = var.repository_image_tag_mutability
-  repository_encryption_type      = var.repository_encryption_type
-  repository_kms_key              = var.repository_kms_key_arn
-  repository_read_access_arns     = var.repository_read_access_arns
+  enable_ecr                        = var.enable_ecr
+  repository_image_tag_mutability   = var.repository_image_tag_mutability
+  repository_encryption_type        = var.repository_encryption_type
+  repository_kms_key                = var.repository_kms_key_arn
+  repository_read_access_arns       = var.repository_read_access_arns
   repository_read_write_access_arns = var.repository_read_write_access_arns
-  enable_registry_scanning        = var.enable_registry_scanning
-  registry_scan_type              = var.registry_scan_type
-  replication_destinations        = var.replication_destinations
-  max_image_count                 = var.max_image_count
+  enable_registry_scanning          = var.enable_registry_scanning
+  registry_scan_type                = var.registry_scan_type
+  replication_destinations          = var.replication_destinations
+  max_image_count                   = var.max_image_count
 
   # Cluster ECS e serviços
-  enable_ecs                    = var.enable_ecs
-  enable_fargate_spot           = var.enable_fargate_spot
+  enable_ecs                              = var.enable_ecs
+  enable_fargate_spot                     = var.enable_fargate_spot
   fargate_capacity_provider_strategy      = var.fargate_capacity_provider_strategy
   fargate_spot_capacity_provider_strategy = var.fargate_spot_capacity_provider_strategy
-  cluster_kms_key_id      = var.cluster_kms_key_arn
-  ecs_log_group_kms_key   = var.ecs_log_group_kms_key_arn
-  additional_task_execution_policies = var.additional_task_execution_policies
-  ssm_parameters_arns     = var.ssm_parameter_arns
-  secrets_manager_arns    = var.secrets_manager_arns
-  create_ecs_alarms       = var.create_ecs_alarms
-  ecs_alarm_actions       = var.ecs_alarm_topic_arn != null ? [var.ecs_alarm_topic_arn] : []
-  ecs_alarm_ok_actions    = var.ecs_alarm_topic_arn != null ? [var.ecs_alarm_topic_arn] : []
-  ecs_alarm_insufficient_data_actions = var.ecs_alarm_insufficient_data_actions
-  ecs_alarm_treat_missing_data        = var.ecs_alarm_treat_missing_data
-  ecs_cpu_alarm_threshold             = var.ecs_cpu_alarm_threshold
-  ecs_cpu_alarm_evaluation_periods    = var.ecs_cpu_alarm_evaluation_periods
-  ecs_cpu_alarm_period                = var.ecs_cpu_alarm_period
+  cluster_kms_key_id                      = var.cluster_kms_key_arn
+  ecs_log_group_kms_key                   = var.ecs_log_group_kms_key_arn
+  additional_task_execution_policies      = var.additional_task_execution_policies
+  ssm_parameters_arns                     = var.ssm_parameter_arns
+  secrets_manager_arns                    = var.secrets_manager_arns
+  create_ecs_alarms                       = var.create_ecs_alarms
+  ecs_alarm_actions                       = var.ecs_alarm_topic_arn != null ? [var.ecs_alarm_topic_arn] : []
+  ecs_alarm_ok_actions                    = var.ecs_alarm_topic_arn != null ? [var.ecs_alarm_topic_arn] : []
+  ecs_alarm_insufficient_data_actions     = var.ecs_alarm_insufficient_data_actions
+  ecs_alarm_treat_missing_data            = var.ecs_alarm_treat_missing_data
+  ecs_cpu_alarm_threshold                 = var.ecs_cpu_alarm_threshold
+  ecs_cpu_alarm_evaluation_periods        = var.ecs_cpu_alarm_evaluation_periods
+  ecs_cpu_alarm_period                    = var.ecs_cpu_alarm_period
 
   ecs_services = {
     (var.api_service_settings.service_name) = {
@@ -99,22 +99,22 @@ module "backend_deploy" {
                 containerPort = var.api_service_settings.app_container.port
                 protocol      = var.api_service_settings.app_container.protocol
               }
-          ]
-          environment = concat(
-            [
-              { name = "ENVIRONMENT", value = var.environment },
-              { name = "LOG_LEVEL", value = var.api_service_settings.app_container.log_level }
-            ],
-            var.api_service_settings.app_container.additional_environment
-          )
-          health_check = {
-            command      = var.api_service_settings.app_container.health_check.command
-            interval     = var.api_service_settings.app_container.health_check.interval
-            timeout      = var.api_service_settings.app_container.health_check.timeout
-            retries      = var.api_service_settings.app_container.health_check.retries
-            start_period = var.api_service_settings.app_container.health_check.start_period
+            ]
+            environment = concat(
+              [
+                { name = "ENVIRONMENT", value = var.environment },
+                { name = "LOG_LEVEL", value = var.api_service_settings.app_container.log_level }
+              ],
+              var.api_service_settings.app_container.additional_environment
+            )
+            health_check = {
+              command      = var.api_service_settings.app_container.health_check.command
+              interval     = var.api_service_settings.app_container.health_check.interval
+              timeout      = var.api_service_settings.app_container.health_check.timeout
+              retries      = var.api_service_settings.app_container.health_check.retries
+              start_period = var.api_service_settings.app_container.health_check.start_period
+            }
           }
-        }
         },
         var.enable_adot ? {
           (var.api_service_settings.adot_container.name) = {
@@ -171,20 +171,20 @@ module "backend_deploy" {
 
   create_database_secret = var.create_database_secret
   database_secret_config = {
-    username        = var.database_secret_config.username
-    engine          = var.database_secret_config.engine
-    host            = var.database_secret_config.host
-    port            = var.database_secret_config.port
-    dbname          = var.database_secret_config.dbname
-    enable_rotation = var.database_secret_rotation_lambda_arn != null
+    username            = var.database_secret_config.username
+    engine              = var.database_secret_config.engine
+    host                = var.database_secret_config.host
+    port                = var.database_secret_config.port
+    dbname              = var.database_secret_config.dbname
+    enable_rotation     = var.database_secret_rotation_lambda_arn != null
     rotation_lambda_arn = var.database_secret_rotation_lambda_arn
-    rotation_days   = var.database_secret_config.rotation_days
+    rotation_days       = var.database_secret_config.rotation_days
   }
 
-  create_api_keys_secret        = var.create_api_keys_secret
-  api_keys_rotation_lambda_arn  = var.api_keys_rotation_lambda_arn
-  api_keys_rotation_days        = var.api_keys_rotation_days
-  api_keys_config               = var.api_keys_config
+  create_api_keys_secret       = var.create_api_keys_secret
+  api_keys_rotation_lambda_arn = var.api_keys_rotation_lambda_arn
+  api_keys_rotation_days       = var.api_keys_rotation_days
+  api_keys_config              = var.api_keys_config
 
   create_app_secrets = var.create_app_secrets
   app_secrets_config = var.app_secrets_config

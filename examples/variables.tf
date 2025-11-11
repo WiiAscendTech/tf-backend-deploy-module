@@ -308,15 +308,15 @@ variable "worker_image" {
 variable "api_service_settings" {
   description = "Configurações detalhadas do serviço principal da API"
   type = object({
-    service_name          = string
-    desired_count         = number
-    assign_public_ip      = bool
+    service_name           = string
+    desired_count          = number
+    assign_public_ip       = bool
     enable_execute_command = bool
     app_container = object({
-      name                   = string
-      port                   = number
-      protocol               = string
-      log_level              = string
+      name      = string
+      port      = number
+      protocol  = string
+      log_level = string
       health_check = object({
         command      = list(string)
         interval     = number
@@ -330,9 +330,9 @@ variable "api_service_settings" {
       })), [])
     })
     adot_container = object({
-      name                   = string
-      image                  = string
-      essential              = bool
+      name      = string
+      image     = string
+      essential = bool
       additional_environment = optional(list(object({
         name  = string
         value = string
@@ -354,10 +354,10 @@ variable "api_service_settings" {
 variable "worker_service_settings" {
   description = "Configurações aplicadas ao serviço de workers assíncronos"
   type = object({
-    service_name          = string
-    desired_count         = number
-    assign_public_ip      = bool
-    container_name        = string
+    service_name     = string
+    desired_count    = number
+    assign_public_ip = bool
+    container_name   = string
     environment_variables = list(object({
       name  = string
       value = string

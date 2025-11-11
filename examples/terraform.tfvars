@@ -18,15 +18,15 @@ default_base_tags = {
 enable_adot = true
 
 amp_remote_write_url = "https://aps-workspaces.us-east-1.amazonaws.com/workspaces/ws-abc123/api/v1/remote_write"
-adot_assume_role_arn  = "arn:aws:iam::123456789012:role/ObservabilityAdotRole"
-adot_log_group_name   = "/aws/ecs/orders-api-prod/adot"
+adot_assume_role_arn = "arn:aws:iam::123456789012:role/ObservabilityAdotRole"
+adot_log_group_name  = "/aws/ecs/orders-api-prod/adot"
 
-enable_alb_routing         = true
-alb_target_type            = "ip"
-alb_protocol               = "HTTP"
-alb_target_group_port      = 8080
-alb_protocol_version       = "HTTP1"
-alb_health_check_path      = "/healthz"
+enable_alb_routing    = true
+alb_target_type       = "ip"
+alb_protocol          = "HTTP"
+alb_target_group_port = 8080
+alb_protocol_version  = "HTTP1"
+alb_health_check_path = "/healthz"
 alb_target_group_advanced_configuration = {
   deregistration_delay = 30
   slow_start           = 60
@@ -37,11 +37,11 @@ alb_target_group_advanced_configuration = {
   }
 }
 
-listener_arn            = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/shared-alb/1234567890abcdef/1234567890abcdef"
-listener_rule_priority  = 50
-vpc_id                  = "vpc-0abc123456789def0"
-host_headers            = ["api.example.com"]
-path_patterns           = ["/", "/api/*"]
+listener_arn              = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/shared-alb/1234567890abcdef/1234567890abcdef"
+listener_rule_priority    = 50
+vpc_id                    = "vpc-0abc123456789def0"
+host_headers              = ["api.example.com"]
+path_patterns             = ["/", "/api/*"]
 existing_target_group_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/shared-ecs-tg/1234567890abcdef"
 
 private_subnet_ids = [
@@ -76,8 +76,8 @@ enable_registry_scanning = true
 registry_scan_type       = "ENHANCED"
 max_image_count          = 15
 
-enable_ecs                    = true
-enable_fargate_spot           = true
+enable_ecs          = true
+enable_fargate_spot = true
 fargate_capacity_provider_strategy = {
   base   = 1
   weight = 70
@@ -87,7 +87,7 @@ fargate_spot_capacity_provider_strategy = {
   weight = 30
 }
 
-cluster_kms_key_arn        = "arn:aws:kms:us-east-1:123456789012:key/66666666-7777-8888-9999-000000000000"
+cluster_kms_key_arn       = "arn:aws:kms:us-east-1:123456789012:key/66666666-7777-8888-9999-000000000000"
 ecs_log_group_kms_key_arn = "arn:aws:kms:us-east-1:123456789012:key/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 additional_task_execution_policies = [
   "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
@@ -110,9 +110,9 @@ api_image    = "123456789012.dkr.ecr.us-east-1.amazonaws.com/orders-api:v1.2.3"
 worker_image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/orders-worker:v1.2.3"
 
 api_service_settings = {
-  service_name          = "api"
-  desired_count         = 2
-  assign_public_ip      = false
+  service_name           = "api"
+  desired_count          = 2
+  assign_public_ip       = false
   enable_execute_command = true
   app_container = {
     name      = "app"
@@ -147,10 +147,10 @@ api_service_settings = {
 }
 
 worker_service_settings = {
-  service_name          = "worker"
-  desired_count         = 1
-  assign_public_ip      = false
-  container_name        = "worker"
+  service_name     = "worker"
+  desired_count    = 1
+  assign_public_ip = false
+  container_name   = "worker"
   environment_variables = [
     {
       name  = "QUEUE_NAME"
@@ -202,8 +202,8 @@ app_secrets_config = {
 
 secrets_config = {
   github_pat = {
-    name          = "backend/prod/github/pat"
-    description   = "Token de acesso para deploy via GitHub Actions"
+    name        = "backend/prod/github/pat"
+    description = "Token de acesso para deploy via GitHub Actions"
     secret_string = jsonencode({
       token = "ghp_example_token"
     })
