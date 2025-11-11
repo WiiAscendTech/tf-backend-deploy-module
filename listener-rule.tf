@@ -4,7 +4,7 @@ resource "aws_lb_listener_rule" "this" {
 
   action {
     type             = "forward"
-    target_group_arn = var.target_group_arn
+    target_group_arn = aws_lb_target_group.this.arn
   }
 
   condition {
