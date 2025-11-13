@@ -134,7 +134,8 @@ resource "local_file" "firelens_config" {
     enable_loki    = var.enable_loki
     loki_host      = var.loki_host
     loki_port      = var.loki_port
-    loki_tls       = var.loki_tls ? "On" : "Off"
+    # IMPORTANTE: usar "on"/"off" minúsculo, como esperado pelo plugin Loki
+    loki_tls       = var.loki_tls ? "on" : "off"
     loki_tenant_id = var.loki_tenant_id
   })
 

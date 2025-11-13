@@ -24,9 +24,9 @@
     Host              ${loki_host}
     Port              ${loki_port}
     tls               ${loki_tls}
-    %{ if loki_tenant_id != "" }
+%{ if loki_tenant_id != "" }
     tenant_id         ${loki_tenant_id}
-    %{ endif }
+%{ endif }
     labels            job=${application},env=${environment},service=${application},cluster=${cluster_name},account=${account_id}
     label_keys        ecs_task_arn,container_name
     line_format       json
