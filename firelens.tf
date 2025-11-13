@@ -1,5 +1,3 @@
-// firelens.tf
-
 data "aws_iam_policy_document" "firelens_bucket_policy" {
   count = var.enable_firelens ? 1 : 0
 
@@ -124,15 +122,12 @@ resource "local_file" "firelens_config" {
     environment     = var.environment
     storage_class   = var.s3_logs_storage_class
 
-    # Metadados extras para labels do Loki
     cluster_name = var.cluster_name
     account_id   = data.aws_caller_identity.current.account_id
 
-    # Config Loki
     enable_loki    = var.enable_loki
     loki_host      = var.loki_host
     loki_port      = var.loki_port
-    # IMPORTANTE: usar "on"/"off" minúsculo, como esperado pelo plugin Loki
     loki_tls       = var.loki_tls ? "on" : "off"
     loki_tenant_id = var.loki_tenant_id
   })
