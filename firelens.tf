@@ -110,8 +110,6 @@ resource "aws_s3_bucket_policy" "firelens_logs" {
   policy = data.aws_iam_policy_document.firelens_bucket_policy[0].json
 }
 
-data "aws_caller_identity" "current" {}
-
 resource "local_file" "firelens_config" {
   count = var.enable_firelens ? 1 : 0
 
