@@ -740,3 +740,33 @@ variable "aws_resource" {
   type        = string
   default     = "cloudwatch"
 }
+
+variable "enable_loki" {
+  description = "Se true, envia logs também para o Loki via Fluent Bit"
+  type        = bool
+  default     = false
+}
+
+variable "loki_host" {
+  description = "Host/DNS do endpoint Loki (ex: loki-nlb-o11y.internal)"
+  type        = string
+  default     = ""
+}
+
+variable "loki_port" {
+  description = "Porta do Loki (default 3100)"
+  type        = number
+  default     = 3100
+}
+
+variable "loki_tls" {
+  description = "Se true, usa TLS na conexão com o Loki"
+  type        = bool
+  default     = false
+}
+
+variable "loki_tenant_id" {
+  description = "Tenant ID para Loki (se multi-tenant; opcional)"
+  type        = string
+  default     = ""
+}

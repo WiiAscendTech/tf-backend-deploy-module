@@ -1,6 +1,34 @@
+// firelens.tf
+
+data "aws_iam_policy_document" "firelens_bucket_policy" {
+  count = var.enable_firelens ? 1 : 0
+
+  statement {
+    sid    = "DenyInsecureTransport"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = ["s3:*"]
+    resources = [
+      aws_s3_bucket.firelens_logs[0].arn,
+      "${aws_s3_bucket.firelens_logs[0].arn}/*",
+    ]
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
 resource "aws_s3_bucket" "firelens_logs" {
-  count        = var.enable_firelens ? 1 : 0
-  bucket       = var.s3_logs_bucket_name
+  count         = var.enable_firelens ? 1 : 0
+  bucket        = var.s3_logs_bucket_name
   force_destroy = var.s3_logs_force_destroy
 
   tags = merge(local.common_tags, {
@@ -76,41 +104,18 @@ resource "aws_s3_bucket_lifecycle_configuration" "firelens_logs" {
   }
 }
 
-data "aws_iam_policy_document" "firelens_bucket_policy" {
-  count = var.enable_firelens ? 1 : 0
-
-  statement {
-    sid    = "DenyInsecureTransport"
-    effect = "Deny"
-
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
-
-    actions = ["s3:*"]
-    resources = [
-      aws_s3_bucket.firelens_logs[0].arn,
-      "${aws_s3_bucket.firelens_logs[0].arn}/*",
-    ]
-
-    condition {
-      test     = "Bool"
-      variable = "aws:SecureTransport"
-      values   = ["false"]
-    }
-  }
-}
-
 resource "aws_s3_bucket_policy" "firelens_logs" {
   count  = var.enable_firelens ? 1 : 0
   bucket = aws_s3_bucket.firelens_logs[0].id
   policy = data.aws_iam_policy_document.firelens_bucket_policy[0].json
 }
 
+data "aws_caller_identity" "current" {}
+
 resource "local_file" "firelens_config" {
-  count    = var.enable_firelens ? 1 : 0
-  content  = templatefile("${path.module}/templates/firelens-fluent-bit.conf.tpl", {
+  count = var.enable_firelens ? 1 : 0
+
+  content = templatefile("${path.module}/templates/firelens-fluent-bit.conf.tpl", {
     bucket_name     = var.s3_logs_bucket_name
     region          = var.region
     total_file_size = var.fluent_total_file_size
@@ -120,7 +125,19 @@ resource "local_file" "firelens_config" {
     application     = var.application
     environment     = var.environment
     storage_class   = var.s3_logs_storage_class
+
+    # Metadados extras para labels do Loki
+    cluster_name = var.cluster_name
+    account_id   = data.aws_caller_identity.current.account_id
+
+    # Config Loki
+    enable_loki    = var.enable_loki
+    loki_host      = var.loki_host
+    loki_port      = var.loki_port
+    loki_tls       = var.loki_tls ? "On" : "Off"
+    loki_tenant_id = var.loki_tenant_id
   })
+
   filename = "${path.module}/firelens-fluent-bit.conf"
 }
 
