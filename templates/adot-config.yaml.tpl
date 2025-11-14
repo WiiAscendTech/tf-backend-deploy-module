@@ -37,6 +37,9 @@ extensions:
   sigv4auth:
     region: ${region}
     service: aps
+    assume_role:
+      arn: ${assume_role_arn}
+      sts_region: ${region}
 
 service:
   telemetry:
