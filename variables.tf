@@ -768,5 +768,5 @@ variable "loki_tls" {
 variable "loki_tenant_id" {
   description = "Tenant ID para Loki (se multi-tenant; opcional)"
   type        = string
-  default     = ""
+  default     = null
 }

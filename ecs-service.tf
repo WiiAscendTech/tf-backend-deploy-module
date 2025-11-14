@@ -1,29 +1,28 @@
 locals {
+  loki_base_options = {
+    Name   = "loki"
+    host   = var.loki_host
+    port   = tostring(var.loki_port)
+    tls    = var.loki_tls ? "on" : "off"
+    labels = "job=${var.application},env=${var.environment},container_name=${var.application}"
+  }
+
+  loki_options = (
+    var.loki_tenant_id != null && var.loki_tenant_id != ""
+  ) ? merge(
+    local.loki_base_options,
+    { tenant_id = var.loki_tenant_id }
+  ) : local.loki_base_options
+
   app_log_configuration = var.enable_firelens && var.enable_loki ? {
     logDriver = "awsfirelens"
-    options = {
-      Name  = "loki"
-
-      # Endereço do Loki (NLB)
-      host = var.loki_host
-      port = tostring(var.loki_port)
-
-      # TLS se estiver usando HTTPS no NLB
-      tls = var.loki_tls ? "on" : "off"
-
-      # Labels que vão aparecer no Loki/Grafana
-      labels = "job=${var.application},env=${var.environment},container_name=${var.application}"
-
-      # Opcional: identifica o tenant (se Loki é multi-tenant)
-      tenant_id = var.loki_tenant_id
-    }
+    options   = local.loki_options
   } : var.enable_firelens ? {
-    # fallback: S3
     logDriver = "awsfirelens"
     options = {
-      Name           = "s3"
-      bucket         = var.s3_logs_bucket_name
-      region         = var.region
+      Name            = "s3"
+      bucket          = var.s3_logs_bucket_name
+      region          = var.region
       total_file_size = var.fluent_total_file_size
       upload_timeout  = var.fluent_upload_timeout
       use_put_object  = "On"
@@ -36,7 +35,7 @@ locals {
       awslogs-stream-prefix = var.application
     }
   } : null
-  
+
   log_router_log_configuration = var.enable_firelens && var.firelens_send_own_logs_to_cw && var.enable_cloudwatch_logs ? {
     logDriver = "awslogs"
     options = {
