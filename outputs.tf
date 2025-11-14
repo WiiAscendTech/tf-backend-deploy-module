@@ -151,8 +151,3 @@ output "firelens_s3_bucket_arn" {
   description = "ARN do bucket S3 utilizado para logs"
   value       = var.enable_firelens ? aws_s3_bucket.firelens_logs[0].arn : null
 }
-
-output "firelens_config_object_key" {
-  description = "Objeto S3 utilizado como configuração do FireLens"
-  value       = var.enable_firelens ? aws_s3_object.firelens_config[0].key : null
-}
