@@ -1,20 +1,19 @@
 locals {
-  # Se FireLens estiver habilitado, manda direto pra S3 usando o plugin s3 do AWS for Fluent Bit
   app_log_configuration = var.enable_firelens ? {
     logDriver = "awsfirelens"
     options = {
-      Name                  = "s3"
-      region                = var.region
-      bucket                = var.s3_logs_bucket_name
-      total_file_size       = var.fluent_total_file_size
-      upload_timeout        = var.fluent_upload_timeout
-      use_put_object        = "On"
-      compression           = var.fluent_compression
-      store_dir             = "/tmp/fluent-bit/s3"
-      storage.total_limit_size = "512M"
-      s3_key_format         = "/${var.s3_logs_prefix}/year=%Y/month=%m/day=%d/app=${var.application}/env=${var.environment}/task=$(ecs_task_arn)/container=$(container_name)/%H-%M-%S-%L.gz"
+      Name                         = "s3"
+      region                       = var.region
+      bucket                       = var.s3_logs_bucket_name
+      total_file_size              = var.fluent_total_file_size
+      upload_timeout               = var.fluent_upload_timeout
+      use_put_object               = "On"
+      compression                  = var.fluent_compression
+      store_dir                    = "/tmp/fluent-bit/s3"
+      "storage.total_limit_size"   = "512M" 
+      s3_key_format                = "/${var.s3_logs_prefix}/year=%Y/month=%m/day=%d/app=${var.application}/env=${var.environment}/task=$(ecs_task_arn)/container=$(container_name)/%H-%M-%S-%L.gz"
       s3_key_format_tag_delimiters = ".-_"
-      storage_class         = var.s3_logs_storage_class
+      storage_class                = var.s3_logs_storage_class
     }
   } : var.enable_cloudwatch_logs ? {
     logDriver = "awslogs"
