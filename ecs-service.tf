@@ -52,6 +52,10 @@ locals {
       type = "fluentbit"
       options = {
         enable-ecs-log-metadata = "true"
+
+        # Ponto chave:
+        config-file-type  = "s3"
+        config-file-value = "arn:aws:s3:::${var.s3_logs_bucket_name}/${var.s3_logs_config_key}"
       }
     },
     environment = [
