@@ -2,18 +2,21 @@ locals {
   app_log_configuration = var.enable_firelens ? {
     logDriver = "awsfirelens"
     options = {
-      Name                         = "s3"
-      region                       = var.region
-      bucket                       = var.s3_logs_bucket_name
-      total_file_size              = var.fluent_total_file_size
-      upload_timeout               = var.fluent_upload_timeout
-      use_put_object               = "On"
-      compression                  = var.fluent_compression
-      store_dir                    = "/tmp/fluent-bit/s3"
-      "storage.total_limit_size"   = "512M" 
-      s3_key_format                = "/${var.s3_logs_prefix}/year=%Y/month=%m/day=%d/app=${var.application}/env=${var.environment}/task=$(ecs_task_arn)/container=$(container_name)/%H-%M-%S-%L.gz"
-      s3_key_format_tag_delimiters = ".-_"
-      storage_class                = var.s3_logs_storage_class
+      # Plugin do Fluent Bit que o FireLens vai usar
+      Name = "s3"
+
+      # Opções do output s3 (iguais às do Fluent Bit)
+      bucket          = var.s3_logs_bucket_name
+      region          = var.region
+      total_file_size = var.fluent_total_file_size   # ex: "5M"
+      upload_timeout  = var.fluent_upload_timeout    # ex: "1m"
+      use_put_object  = "On"
+
+      # Se quiser, depois dá pra reintroduzir mais opções
+      # store_dir       = "/tmp/fluent-bit/s3"
+      # retry_limit     = "2"
+      # compression     = var.fluent_compression
+      # s3_key_format   = "/${var.s3_logs_prefix}/year=%Y/month=%m/day=%d/app=${var.application}/env=${var.environment}/%H-%M-%S-%L"
     }
   } : var.enable_cloudwatch_logs ? {
     logDriver = "awslogs"
@@ -54,8 +57,6 @@ locals {
     logConfiguration = local.app_log_configuration
   } : {})
 
-  # FireLens log router (Fluent Bit)
-  # Agora sem config-file-type/config-file-value – para Fargate usamos somente o modo "generated config"
   log_router_container_definition = var.enable_firelens ? merge({
     name      = "log-router"
     image     = var.firelens_image
@@ -66,20 +67,23 @@ locals {
     firelensConfiguration = {
       type = "fluentbit"
       options = {
+        # NÃO usamos config-file-* em Fargate aqui
         enable-ecs-log-metadata = "true"
       }
     }
 
+    # Essas envs hoje são opcionais (não usadas pelo FireLens automático),
+    # mas podemos manter se quiser aproveitar depois numa imagem customizada.
     environment = [
-      { name = "APP_NAME",       value = var.application },
-      { name = "ENVIRONMENT",    value = var.environment },
-      { name = "S3_BUCKET",      value = aws_s3_bucket.firelens_logs[0].bucket },
-      { name = "S3_PREFIX",      value = var.s3_logs_prefix },
-      { name = "AWS_REGION",     value = var.region },
-      { name = "S3_CLASS",       value = var.s3_logs_storage_class },
-      { name = "TOTAL_FILE",     value = var.fluent_total_file_size },
-      { name = "UPLOAD_TO",      value = var.fluent_upload_timeout },
-      { name = "COMPRESS",       value = var.fluent_compression }
+      { name = "APP_NAME",   value = var.application },
+      { name = "ENVIRONMENT", value = var.environment },
+      { name = "S3_BUCKET",  value = var.s3_logs_bucket_name },
+      { name = "S3_PREFIX",  value = var.s3_logs_prefix },
+      { name = "AWS_REGION", value = var.region },
+      { name = "S3_CLASS",   value = var.s3_logs_storage_class },
+      { name = "TOTAL_FILE", value = var.fluent_total_file_size },
+      { name = "UPLOAD_TO",  value = var.fluent_upload_timeout },
+      { name = "COMPRESS",   value = var.fluent_compression }
     ]
 
     healthCheck = {
