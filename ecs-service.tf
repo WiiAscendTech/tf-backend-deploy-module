@@ -1,9 +1,20 @@
 locals {
+  # Se FireLens estiver habilitado, manda direto pra S3 usando o plugin s3 do AWS for Fluent Bit
   app_log_configuration = var.enable_firelens ? {
     logDriver = "awsfirelens"
     options = {
-      Name = "forward"
-      Tag  = "app.{{.Name}}"
+      Name                  = "s3"
+      region                = var.region
+      bucket                = var.s3_logs_bucket_name
+      total_file_size       = var.fluent_total_file_size
+      upload_timeout        = var.fluent_upload_timeout
+      use_put_object        = "On"
+      compression           = var.fluent_compression
+      store_dir             = "/tmp/fluent-bit/s3"
+      storage.total_limit_size = "512M"
+      s3_key_format         = "/${var.s3_logs_prefix}/year=%Y/month=%m/day=%d/app=${var.application}/env=${var.environment}/task=$(ecs_task_arn)/container=$(container_name)/%H-%M-%S-%L.gz"
+      s3_key_format_tag_delimiters = ".-_"
+      storage_class         = var.s3_logs_storage_class
     }
   } : var.enable_cloudwatch_logs ? {
     logDriver = "awslogs"
@@ -24,54 +35,59 @@ locals {
   } : null
 
   app_container_definition = merge({
-    name      = var.application,
-    image     = "${aws_ecr_repository.this.repository_url}:latest",
-    cpu       = var.container_cpu,
-    memory    = var.container_memory,
-    essential = true,
+    name      = var.application
+    image     = "${aws_ecr_repository.this.repository_url}:latest"
+    cpu       = var.container_cpu
+    memory    = var.container_memory
+    essential = true
+
     portMappings = [
       {
         containerPort = var.container_port
         hostPort      = var.container_port
         protocol      = "tcp"
       }
-    ],
-    environment = var.ecs_environment_variables,
-    secrets     = var.ecs_secrets,
+    ]
+
+    environment = var.ecs_environment_variables
+    secrets     = var.ecs_secrets
   }, local.app_log_configuration != null ? {
     logConfiguration = local.app_log_configuration
   } : {})
 
+  # FireLens log router (Fluent Bit)
+  # Agora sem config-file-type/config-file-value – para Fargate usamos somente o modo "generated config"
   log_router_container_definition = var.enable_firelens ? merge({
-    name      = "log-router",
-    image     = var.firelens_image,
-    cpu       = var.firelens_cpu,
-    memory    = var.firelens_memory,
-    essential = true,
+    name      = "log-router"
+    image     = var.firelens_image
+    cpu       = var.firelens_cpu
+    memory    = var.firelens_memory
+    essential = true
+
     firelensConfiguration = {
       type = "fluentbit"
       options = {
         enable-ecs-log-metadata = "true"
-        config-file-type        = "file"
-        config-file-value       = "/fluent-bit/etc/fluent-bit.conf"
       }
-    },
+    }
+
     environment = [
-      { name = "APP_NAME",      value = var.application },
-      { name = "ENVIRONMENT",   value = var.environment },
-      { name = "S3_BUCKET",     value = aws_s3_bucket.firelens_logs[0].bucket },
-      { name = "S3_PREFIX",     value = var.s3_logs_prefix },
-      { name = "AWS_REGION",    value = var.region },
-      { name = "S3_CLASS",      value = var.s3_logs_storage_class },
-      { name = "TOTAL_FILE",    value = var.fluent_total_file_size },
-      { name = "UPLOAD_TO",     value = var.fluent_upload_timeout },
-      { name = "COMPRESS",      value = var.fluent_compression }
-    ],
+      { name = "APP_NAME",       value = var.application },
+      { name = "ENVIRONMENT",    value = var.environment },
+      { name = "S3_BUCKET",      value = aws_s3_bucket.firelens_logs[0].bucket },
+      { name = "S3_PREFIX",      value = var.s3_logs_prefix },
+      { name = "AWS_REGION",     value = var.region },
+      { name = "S3_CLASS",       value = var.s3_logs_storage_class },
+      { name = "TOTAL_FILE",     value = var.fluent_total_file_size },
+      { name = "UPLOAD_TO",      value = var.fluent_upload_timeout },
+      { name = "COMPRESS",       value = var.fluent_compression }
+    ]
+
     healthCheck = {
-      command     = ["CMD-SHELL", "pgrep fluent-bit > /dev/null || exit 1"],
-      interval    = 30,
-      timeout     = 5,
-      retries     = 3,
+      command     = ["CMD-SHELL", "pgrep fluent-bit > /dev/null || exit 1"]
+      interval    = 30
+      timeout     = 5
+      retries     = 3
       startPeriod = 10
     }
   }, local.log_router_log_configuration != null ? {
@@ -197,10 +213,12 @@ resource "aws_appautoscaling_policy" "requests_scaling" {
       namespace   = "AWS/ApplicationELB"
       statistic   = "Sum"
       unit        = "Count"
+
       dimensions {
         name  = "TargetGroup"
         value = split(":", aws_lb_target_group.this.arn)[5]
       }
+
       dimensions {
         name  = "LoadBalancer"
         value = var.load_balancer_arn_suffix

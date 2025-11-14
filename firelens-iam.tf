@@ -1,11 +1,13 @@
 data "aws_iam_policy_document" "firelens_task_role" {
   count = var.enable_firelens ? 1 : 0
 
+  # Permite listar bucket e pegar localização
   statement {
     actions   = ["s3:ListBucket", "s3:GetBucketLocation"]
     resources = [aws_s3_bucket.firelens_logs[0].arn]
   }
 
+  # Permite escrever os objetos de log
   statement {
     actions = [
       "s3:PutObject",
@@ -15,10 +17,15 @@ data "aws_iam_policy_document" "firelens_task_role" {
     resources = ["${aws_s3_bucket.firelens_logs[0].arn}/${var.s3_logs_prefix}/*"]
   }
 
+  # KMS opcional, se tiver CMK custom
   dynamic "statement" {
     for_each = var.s3_logs_kms_key_arn != null ? [var.s3_logs_kms_key_arn] : []
     content {
-      actions   = ["kms:Encrypt", "kms:GenerateDataKey", "kms:GenerateDataKeyWithoutPlaintext"]
+      actions = [
+        "kms:Encrypt",
+        "kms:GenerateDataKey",
+        "kms:GenerateDataKeyWithoutPlaintext"
+      ]
       resources = [statement.value]
     }
   }
@@ -27,7 +34,7 @@ data "aws_iam_policy_document" "firelens_task_role" {
 resource "aws_iam_policy" "firelens_task_role" {
   count       = var.enable_firelens ? 1 : 0
   name        = "${var.application}-${var.environment}-firelens-logs"
-  description = "Permite que a task ECS envie logs para o bucket S3"
+  description = "Permite que a task ECS envie logs para o bucket S3 via FireLens"
   policy      = data.aws_iam_policy_document.firelens_task_role[0].json
 }
 
