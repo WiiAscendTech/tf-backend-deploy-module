@@ -52,22 +52,20 @@ locals {
       type = "fluentbit"
       options = {
         enable-ecs-log-metadata = "true"
-
-        # Ponto chave:
-        config-file-type  = "s3"
-        config-file-value = "arn:aws:s3:::${var.s3_logs_bucket_name}/${var.s3_logs_config_key}"
+        config-file-type        = "file"
+        config-file-value       = "/fluent-bit/etc/fluent-bit.conf"
       }
     },
     environment = [
-      { name = "APP_NAME", value = var.application },
-      { name = "ENVIRONMENT", value = var.environment },
-      { name = "S3_BUCKET", value = aws_s3_bucket.firelens_logs[0].bucket },
-      { name = "S3_PREFIX", value = var.s3_logs_prefix },
-      { name = "AWS_REGION", value = var.region },
-      { name = "S3_CLASS", value = var.s3_logs_storage_class },
-      { name = "TOTAL_FILE", value = var.fluent_total_file_size },
-      { name = "UPLOAD_TO", value = var.fluent_upload_timeout },
-      { name = "COMPRESS", value = var.fluent_compression }
+      { name = "APP_NAME",      value = var.application },
+      { name = "ENVIRONMENT",   value = var.environment },
+      { name = "S3_BUCKET",     value = aws_s3_bucket.firelens_logs[0].bucket },
+      { name = "S3_PREFIX",     value = var.s3_logs_prefix },
+      { name = "AWS_REGION",    value = var.region },
+      { name = "S3_CLASS",      value = var.s3_logs_storage_class },
+      { name = "TOTAL_FILE",    value = var.fluent_total_file_size },
+      { name = "UPLOAD_TO",     value = var.fluent_upload_timeout },
+      { name = "COMPRESS",      value = var.fluent_compression }
     ],
     healthCheck = {
       command     = ["CMD-SHELL", "pgrep fluent-bit > /dev/null || exit 1"],
@@ -156,7 +154,6 @@ resource "aws_appautoscaling_target" "this" {
   max_capacity = var.autoscaling_max_capacity
 
   resource_id = "service/${var.cluster_name}/${aws_ecs_service.this.name}"
-
 
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"

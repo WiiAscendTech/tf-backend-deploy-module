@@ -107,38 +107,3 @@ resource "aws_s3_bucket_policy" "firelens_logs" {
   bucket = aws_s3_bucket.firelens_logs[0].id
   policy = data.aws_iam_policy_document.firelens_bucket_policy[0].json
 }
-
-resource "local_file" "firelens_config" {
-  count = var.enable_firelens ? 1 : 0
-
-  content = templatefile("${path.module}/templates/firelens-fluent-bit.conf.tpl", {
-    bucket_name     = var.s3_logs_bucket_name
-    region          = var.region
-    total_file_size = var.fluent_total_file_size
-    upload_timeout  = var.fluent_upload_timeout
-    compression     = var.fluent_compression
-    s3_prefix       = var.s3_logs_prefix
-    application     = var.application
-    environment     = var.environment
-    storage_class   = var.s3_logs_storage_class
-
-    cluster_name = var.cluster_name
-    account_id   = data.aws_caller_identity.current.account_id
-
-    enable_loki    = var.enable_loki
-    loki_host      = var.loki_host
-    loki_port      = var.loki_port
-    loki_tls       = var.loki_tls ? "on" : "off"
-    loki_tenant_id = var.loki_tenant_id
-  })
-
-  filename = "${path.module}/firelens-fluent-bit.conf"
-}
-
-resource "aws_s3_object" "firelens_config" {
-  count        = var.enable_firelens ? 1 : 0
-  bucket       = aws_s3_bucket.firelens_logs[0].id
-  key          = var.s3_logs_config_key
-  content      = local_file.firelens_config[0].content
-  content_type = "text/plain"
-}
