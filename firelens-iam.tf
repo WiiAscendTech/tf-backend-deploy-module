@@ -14,7 +14,7 @@ data "aws_iam_policy_document" "firelens_task_role" {
       "s3:PutObjectAcl",
       "s3:AbortMultipartUpload"
     ]
-    resources = ["${aws_s3_bucket.firelens_logs[0].arn}/${var.s3_logs_prefix}/*"]
+    resources = ["${aws_s3_bucket.firelens_logs[0].arn}/*"]
   }
 
   dynamic "statement" {
