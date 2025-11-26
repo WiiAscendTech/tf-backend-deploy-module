@@ -1,4 +1,3 @@
-
 data "aws_caller_identity" "current" {}
 
 resource "aws_iam_role" "remote_write" {
@@ -49,6 +48,38 @@ resource "aws_iam_policy" "remote_write" {
 resource "aws_iam_role_policy_attachment" "remote_write" {
   role       = aws_iam_role.remote_write.name
   policy_arn = aws_iam_policy.remote_write.arn
+}
+
+data "aws_iam_policy_document" "remote_write_assume_role" {
+  count = var.task_role_arn != null ? 1 : 0
+
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+    resources = [
+      aws_iam_role.remote_write.arn
+    ]
+  }
+}
+
+resource "aws_iam_policy" "remote_write_assume_role" {
+  count       = var.task_role_arn != null ? 1 : 0
+  name        = "${local.remote_write_role_name}-assume"
+  description = "Permite que a task ECS assuma a role de remote write do ADOT"
+
+  policy = data.aws_iam_policy_document.remote_write_assume_role[0].json
+
+  tags = merge(local.common_tags, {
+    Name = "${local.remote_write_role_name}-assume"
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "remote_write_assume_role" {
+  count = var.task_role_arn != null ? 1 : 0
+
+  # 'role' espera o NOME da role, então extraímos do ARN
+  role       = split("/", var.task_role_arn)[length(split("/", var.task_role_arn)) - 1]
+  policy_arn = aws_iam_policy.remote_write_assume_role[0].arn
 }
 
 resource "local_file" "adot_config" {
