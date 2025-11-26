@@ -6,12 +6,9 @@ locals {
     Application = var.application
   })
 
-  assume_role_principals = distinct(concat(
-    length(var.assume_role_principals) > 0 ? var.assume_role_principals : [
-      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
-    ],
-    var.task_role_arn != null ? [var.task_role_arn] : []
-  ))
+  assume_role_principals = length(var.assume_role_principals) > 0 ? var.assume_role_principals : [
+    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+  ]
 
   remote_write_role_name   = "${var.application}-adot-remote-write-${var.environment}"
   remote_write_policy_name = "${var.application}-adot-remote-write-policy-${var.environment}"

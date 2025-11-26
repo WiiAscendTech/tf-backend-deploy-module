@@ -11,3 +11,4 @@ output "remote_write_policy_arn" {
   description = "ARN da IAM Policy criada para remote write"
   value       = aws_iam_policy.remote_write.arn
 }
+

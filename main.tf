@@ -24,7 +24,7 @@ module "adot" {
   amp_remote_write_url   = var.amp_remote_write_url
   amp_workspace_arn      = var.amp_workspace_arn
   assume_role_principals = var.adot_assume_role_principals
-  task_role_arn          = module.ecs.task_role_arn
+  task_role_arn          = null
   log_group              = var.log_group
   log_stream_prefix      = var.log_stream_prefix
   volume_name            = var.volume_name
@@ -224,6 +224,93 @@ module "firelens" {
   loki_tls                           = var.loki_tls
   loki_tenant_id                     = var.loki_tenant_id
   task_role_arn                      = module.ecs.task_role_arn
+}
+
+# Policy que permite que a task ECS assuma a role de remote write do ADOT
+data "aws_iam_policy_document" "adot_remote_write_assume_role" {
+  count = var.enable_metrics ? 1 : 0
+
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+    resources = [
+      module.adot.remote_write_role_arn
+    ]
+  }
+}
+
+resource "aws_iam_policy" "adot_remote_write_assume_role" {
+  count       = var.enable_metrics ? 1 : 0
+  name        = "${var.application}-adot-remote-write-assume-${var.environment}"
+  description = "Permite que a task ECS assuma a role de remote write do ADOT"
+
+  policy = data.aws_iam_policy_document.adot_remote_write_assume_role[0].json
+
+  tags = merge(local.common_tags, {
+    Name = "${var.application}-adot-remote-write-assume-${var.environment}"
+  })
+
+  depends_on = [
+    module.ecs,
+    module.adot
+  ]
+}
+
+# Atualiza a trust policy da role de remote write para incluir o task_role_arn
+data "aws_iam_policy_document" "adot_remote_write_trust_policy" {
+  count = var.enable_metrics ? 1 : 0
+
+  statement {
+    effect = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = distinct(concat(
+        var.adot_assume_role_principals,
+        [module.ecs.task_role_arn]
+      ))
+    }
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "null_resource" "adot_remote_write_trust_policy_update" {
+  count = var.enable_metrics ? 1 : 0
+
+  triggers = {
+    trust_policy = data.aws_iam_policy_document.adot_remote_write_trust_policy[0].json
+    role_arn     = module.adot.remote_write_role_arn
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      ROLE_NAME=$(echo '${module.adot.remote_write_role_arn}' | awk -F'/' '{print $NF}')
+      echo '${data.aws_iam_policy_document.adot_remote_write_trust_policy[0].json}' > /tmp/adot-trust-policy-$${ROLE_NAME}.json
+      aws iam update-assume-role-policy \
+        --role-name "$ROLE_NAME" \
+        --policy-document file:///tmp/adot-trust-policy-$${ROLE_NAME}.json
+      rm -f /tmp/adot-trust-policy-$${ROLE_NAME}.json
+    EOT
+  }
+
+  depends_on = [
+    module.ecs,
+    module.adot
+  ]
+}
+
+resource "aws_iam_role_policy_attachment" "adot_remote_write_assume_role" {
+  count = var.enable_metrics ? 1 : 0
+
+  # 'role' espera o NOME da role, então extraímos do ARN
+  role       = module.ecs.task_role_name
+  policy_arn = aws_iam_policy.adot_remote_write_assume_role[0].arn
+
+  depends_on = [
+    module.ecs,
+    module.adot,
+    aws_iam_policy.adot_remote_write_assume_role,
+    null_resource.adot_remote_write_trust_policy_update
+  ]
 }
 
 module "secrets_manager" {
