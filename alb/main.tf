@@ -43,11 +43,6 @@ resource "aws_security_group" "alb" {
   })
 }
 
-data "aws_lb" "existing" {
-  count = var.create_alb ? 0 : 1
-  name  = local.alb_name
-}
-
 resource "aws_lb" "this" {
   count              = var.create_alb ? 1 : 0
   name               = local.alb_name
@@ -155,7 +150,9 @@ resource "aws_lb_listener_rule" "this" {
 }
 
 locals {
-  target_group_vpc_id = var.create_alb ? var.vpc_id : (length(data.aws_lb.existing) > 0 ? data.aws_lb.existing[0].vpc_id : var.vpc_id)
+  # Quando create_alb = false, usamos o vpc_id fornecido diretamente
+  # Não precisamos buscar o ALB existente pois o vpc_id já é conhecido
+  target_group_vpc_id = var.vpc_id
 }
 
 resource "aws_lb_target_group" "this" {
