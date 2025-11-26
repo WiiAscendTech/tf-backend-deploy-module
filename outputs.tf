@@ -1,153 +1,170 @@
-// ADOT SIDECAR
-output "adot_container_definition" {
-  value = jsonencode(local.adot_container_definition)
-}
-
-// ECR
-output "repository_url" {
+output "ecr_repository_url" {
   description = "URL do repositório ECR criado"
-  value       = aws_ecr_repository.this.repository_url
+  value       = module.ecr.repository_url
 }
 
-output "repository_arn" {
+output "ecr_repository_arn" {
   description = "ARN do repositório ECR criado"
-  value       = aws_ecr_repository.this.arn
+  value       = module.ecr.repository_arn
 }
 
-output "registry_id" {
+output "ecr_registry_id" {
   description = "ID do registro AWS associado ao repositório ECR"
-  value       = aws_ecr_repository.this.registry_id
+  value       = module.ecr.registry_id
 }
 
-// ECS SERVICE
-output "service_name" {
-  value       = aws_ecs_service.this.name
-  description = "Nome do Serviço ECS."
+output "execution_role_name" {
+  description = "Nome da IAM Execution Role do ECS (se criada)"
+  value       = module.ecs.execution_role_name
 }
 
-output "task_definition_arn" {
-  value       = aws_ecs_task_definition.this.arn
-  description = "ARN da definição da task criada."
+output "execution_role_arn" {
+  description = "ARN da IAM Execution Role do ECS (se criada)"
+  value       = module.ecs.execution_role_arn
+}
+
+output "task_role_name" {
+  description = "Nome da IAM Role da task criada"
+  value       = module.ecs.task_role_name
+}
+
+output "task_role_arn" {
+  description = "ARN da IAM Role da task criada"
+  value       = module.ecs.task_role_arn
+}
+
+output "alb_arn" {
+  description = "ARN do Application Load Balancer (se criado)"
+  value       = module.alb.alb_arn
+}
+
+output "alb_dns_name" {
+  description = "DNS name do Application Load Balancer (se criado)"
+  value       = module.alb.alb_dns_name
+}
+
+output "alb_zone_id" {
+  description = "Zone ID do Application Load Balancer (se criado)"
+  value       = module.alb.alb_zone_id
+}
+
+output "alb_security_group_id" {
+  description = "ID do Security Group do ALB (se criado)"
+  value       = module.alb.alb_security_group_id
+}
+
+output "http_listener_arn" {
+  description = "ARN do listener HTTP (se criado)"
+  value       = module.alb.http_listener_arn
+}
+
+output "https_listener_arn" {
+  description = "ARN do listener HTTPS (se criado)"
+  value       = module.alb.https_listener_arn
+}
+
+output "listener_rule_arn" {
+  description = "ARN da regra de listener criada (se usar ALB existente)"
+  value       = module.alb.listener_rule_arn
+}
+
+output "target_group_arn" {
+  description = "ARN do Target Group"
+  value       = module.alb.target_group_arn
+}
+
+output "target_group_name" {
+  description = "Nome do Target Group"
+  value       = module.alb.target_group_name
+}
+
+output "target_group_id" {
+  description = "ID do Target Group"
+  value       = module.alb.target_group_id
+}
+
+output "ecs_service_name" {
+  description = "Nome do Serviço ECS"
+  value       = module.ecs.service_name
+}
+
+output "ecs_task_definition_arn" {
+  description = "ARN da definição da task criada"
+  value       = module.ecs.task_definition_arn
 }
 
 output "ecs_sg_id" {
   description = "ID do Security Group do ECS"
-  value       = aws_security_group.ecs_sg.id
+  value       = module.ecs.ecs_sg_id
 }
 
-output "container_port" {
+output "ecs_container_port" {
   description = "Porta do container ECS"
-  value       = var.container_port
+  value       = module.ecs.container_port
 }
 
 output "ecs_cloudwatch_log_group_name" {
   description = "Nome do Log Group do ECS"
-  value       = var.enable_cloudwatch_logs ? aws_cloudwatch_log_group.this[0].name : null
+  value       = module.ecs.ecs_cloudwatch_log_group_name
 }
 
-// IAM ROLE
-output "role_name" {
-  description = "Nome da IAM Role criada"
-  value       = aws_iam_role.this.name
+output "ecs_cluster_id" {
+  description = "ID do ECS Cluster (criado ou existente)"
+  value       = module.ecs.cluster_id
 }
 
-output "role_arn" {
-  description = "ARN da IAM Role criada"
-  value       = aws_iam_role.this.arn
+output "ecs_cluster_name" {
+  description = "Nome do ECS Cluster (criado ou existente)"
+  value       = module.ecs.cluster_name
 }
 
-output "policy_arn" {
-  description = "ARN da política IAM criada (se aplicável)"
-  value       = var.policy_json != null ? aws_iam_policy.this[0].arn : null
+output "ecs_cluster_arn" {
+  description = "ARN do ECS Cluster (criado ou existente)"
+  value       = module.ecs.cluster_arn
 }
 
-output "attached_managed_policies" {
-  description = "Lista de ARNs de políticas gerenciadas anexadas"
-  value       = var.managed_policy_arns
+output "adot_container_definition" {
+  description = "JSON do container definition do ADOT"
+  value       = module.adot.adot_container_definition
 }
 
-// LISTENER RULE
-output "listener_rule_arn" {
-  description = "ARN da regra de listener criada"
-  value       = aws_lb_listener_rule.this.arn
+output "adot_remote_write_role_arn" {
+  description = "ARN da role utilizada pelo ADOT para remote write"
+  value       = module.adot.remote_write_role_arn
 }
 
-// SECRETS MANAGER
 output "secret_arn" {
-  description = "ARN do segredo"
-  value       = aws_secretsmanager_secret.secret_manager.arn
+  description = "ARN do segredo criado (se aplicável)"
+  value       = var.create_secret ? module.secrets_manager[0].secret_arn : null
 }
 
 output "secret_name" {
-  description = "Nome do segredo"
-  value       = aws_secretsmanager_secret.secret_manager.name
+  description = "Nome do segredo criado (se aplicável)"
+  value       = var.create_secret ? module.secrets_manager[0].secret_name : null
 }
 
 output "secret_id" {
-  description = "ID do segredo (necessário para data sources)"
-  value       = aws_secretsmanager_secret.secret_manager.id
+  description = "ID do segredo criado (se aplicável)"
+  value       = var.create_secret ? module.secrets_manager[0].secret_id : null
 }
 
-output "secret_version_id" {
-  description = "ID da versão do segredo (se criada)"
-  value       = try(aws_secretsmanager_secret_version.secret_version[0].version_id, null)
-}
-
-// TARGET GROUP
-output "target_group_arn" {
-  description = "ARN do Target Group"
-  value       = aws_lb_target_group.this.arn
-
-}
-output "target_group_name" {
-  description = "Nome do Target Group"
-  value       = aws_lb_target_group.this.name
-}
-
-// X-RAY
-output "xray_role_name" {
-  value       = aws_iam_role.this.name
-  description = "Nome da IAM Role atribuída ao X-Ray"
-}
-
-output "xray_role_arn" {
-  value       = aws_iam_role.this.arn
-  description = "ARN da IAM Role atribuída ao X-Ray"
-}
-
-// CLOUDWATCH LOGS
-output "log_group_name" {
-  description = "Nome do Log Group criado"
-  value       = var.enable_cloudwatch_logs ? aws_cloudwatch_log_group.this[0].name : null
-}
-
-output "log_group_arn" {
-  description = "ARN do Log Group criado"
-  value       = var.enable_cloudwatch_logs ? aws_cloudwatch_log_group.this[0].arn : null
-}
-
-output "log_group_kms_key_id" {
-  description = "KMS Key ID utilizada para criptografia"
-  value       = var.enable_cloudwatch_logs ? aws_cloudwatch_log_group.this[0].kms_key_id : null
-}
-
-output "subscription_filter_name" {
-  description = "Nome do Subscription Filter criado (se existir)"
-  value       = length(aws_cloudwatch_log_subscription_filter.this) > 0 ? aws_cloudwatch_log_subscription_filter.this[0].name : null
-}
-
-output "metric_filter_names" {
-  description = "Nomes dos Metric Filters criados"
-  value       = [for filter in aws_cloudwatch_log_metric_filter.this : filter.name]
-}
-
-// FIRELENS / S3 LOGS
 output "firelens_s3_bucket_name" {
-  description = "Nome do bucket S3 utilizado para armazenar os logs via FireLens"
-  value       = var.enable_firelens ? aws_s3_bucket.firelens_logs[0].bucket : null
+  description = "Nome do bucket S3 utilizado para armazenar os logs via FireLens (se aplicável)"
+  value       = module.firelens.firelens_s3_bucket_name
 }
 
 output "firelens_s3_bucket_arn" {
-  description = "ARN do bucket S3 utilizado para logs"
-  value       = var.enable_firelens ? aws_s3_bucket.firelens_logs[0].arn : null
+  description = "ARN do bucket S3 utilizado para logs (se aplicável)"
+  value       = module.firelens.firelens_s3_bucket_arn
 }
+
+output "application_name" {
+  description = "Nome da aplicação"
+  value       = var.application
+}
+
+output "environment" {
+  description = "Ambiente de implantação"
+  value       = var.environment
+}
+

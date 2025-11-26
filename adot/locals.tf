@@ -1,4 +1,22 @@
 locals {
+  common_tags = merge(var.tags, {
+    Environment = var.environment
+    Project     = var.project_name
+    Owner       = var.owner
+    Application = var.application
+  })
+
+  assume_role_principals = distinct(concat(
+    length(var.assume_role_principals) > 0 ? var.assume_role_principals : [
+      "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+    ],
+    var.task_role_arn != null ? [var.task_role_arn] : []
+  ))
+
+  remote_write_role_name   = "${var.application}-adot-remote-write-${var.environment}"
+  remote_write_policy_name = "${var.application}-adot-remote-write-policy-${var.environment}"
+  remote_write_resources   = var.amp_workspace_arn != null ? [var.amp_workspace_arn] : ["*"]
+
   cloudwatch_log_group_name = coalesce(var.log_group, "/ecs/${var.application}-${var.environment}")
 
   adot_log_configuration = {
@@ -17,9 +35,11 @@ locals {
 
   environment_variables = concat(var.environment_variables, [local.adot_config_env])
 
+  container_name = coalesce(var.container_name, "${var.application}-adot")
+
   adot_container_definition = merge(
     {
-      name      = var.container_name
+      name      = local.container_name
       image     = var.image
       cpu       = var.adot_cpu
       memory    = var.adot_memory
@@ -46,15 +66,5 @@ locals {
       logConfiguration = local.adot_log_configuration
     }
   )
-
-  final_name = var.name_override != null ? var.name_override : "${var.application}-${var.environment}"
-
-  common_tags = merge(var.tags, {
-    Environment = var.environment
-    Project     = var.project_name
-    Owner       = var.owner
-    Application = var.application
-  })
-
-  execution_role_name = try(element(reverse(split("/", var.execution_role_arn)), 0), null)
 }
+

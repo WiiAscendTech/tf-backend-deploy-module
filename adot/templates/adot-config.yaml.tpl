@@ -24,8 +24,6 @@ processors:
         value: ${environment}
 
 exporters:
-  awsxray:
-    region: ${region}
   prometheusremotewrite:
     endpoint: ${amp_remote_write_url}
     auth:
@@ -56,11 +54,6 @@ service:
 
   extensions: [sigv4auth]
   pipelines:
-%{ if enable_traces }
-    traces:
-      receivers: [otlp]
-      exporters: [awsxray]
-%{ endif }
 %{ if enable_metrics }
     metrics:
       receivers: [otlp]

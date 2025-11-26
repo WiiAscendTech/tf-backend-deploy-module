@@ -1,5 +1,6 @@
+
 resource "aws_ecr_repository" "this" {
-  name                 = "wiiascend/${var.application}-${var.environment}"
+  name                 = local.repository_name
   image_tag_mutability = var.image_tag_mutability
 
   image_scanning_configuration {
@@ -11,7 +12,7 @@ resource "aws_ecr_repository" "this" {
   }
 
   tags = merge(local.common_tags, {
-    Name = "wiiascend/${var.application}-${var.environment}"
+    Name = local.repository_name
   })
 }
 

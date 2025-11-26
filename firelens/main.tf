@@ -1,3 +1,4 @@
+
 data "aws_iam_policy_document" "firelens_bucket_policy" {
   count = var.enable_firelens ? 1 : 0
 
@@ -106,4 +107,43 @@ resource "aws_s3_bucket_policy" "firelens_logs" {
   count  = var.enable_firelens ? 1 : 0
   bucket = aws_s3_bucket.firelens_logs[0].id
   policy = data.aws_iam_policy_document.firelens_bucket_policy[0].json
+}
+
+data "aws_iam_policy_document" "firelens_task_role" {
+  count = var.enable_firelens ? 1 : 0
+
+  statement {
+    actions   = ["s3:ListBucket", "s3:GetBucketLocation"]
+    resources = [aws_s3_bucket.firelens_logs[0].arn]
+  }
+
+  statement {
+    actions = [
+      "s3:PutObject",
+      "s3:PutObjectAcl",
+      "s3:AbortMultipartUpload"
+    ]
+    resources = ["${aws_s3_bucket.firelens_logs[0].arn}/*"]
+  }
+
+  dynamic "statement" {
+    for_each = var.s3_logs_kms_key_arn != null ? [var.s3_logs_kms_key_arn] : []
+    content {
+      actions   = ["kms:Encrypt", "kms:GenerateDataKey", "kms:GenerateDataKeyWithoutPlaintext"]
+      resources = [statement.value]
+    }
+  }
+}
+
+resource "aws_iam_policy" "firelens_task_role" {
+  count       = var.enable_firelens ? 1 : 0
+  name        = local.policy_name
+  description = "Permite que a task ECS envie logs para o bucket S3 via FireLens"
+  policy      = data.aws_iam_policy_document.firelens_task_role[0].json
+}
+
+resource "aws_iam_role_policy_attachment" "firelens_task_role" {
+  count      = var.enable_firelens && var.task_role_arn != null ? 1 : 0
+  role       = var.task_role_arn
+  policy_arn = aws_iam_policy.firelens_task_role[0].arn
 }
