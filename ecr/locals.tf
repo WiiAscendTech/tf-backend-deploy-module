@@ -6,6 +6,6 @@ locals {
     Application = var.application
   })
 
-  repository_name = "r10/${var.application}-${var.environment}"
+  repository_name = "wiiascend/${var.application}-${var.environment}"
 }
 
