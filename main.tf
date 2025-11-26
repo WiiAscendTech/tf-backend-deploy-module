@@ -24,7 +24,7 @@ module "adot" {
   amp_remote_write_url   = var.amp_remote_write_url
   amp_workspace_arn      = var.amp_workspace_arn
   assume_role_principals = var.adot_assume_role_principals
-  task_role_arn          = null
+  task_role_arn          = module.ecs.task_role_arn
   log_group              = var.log_group
   log_stream_prefix      = var.log_stream_prefix
   volume_name            = var.volume_name
@@ -223,19 +223,7 @@ module "firelens" {
   loki_port                          = var.loki_port
   loki_tls                           = var.loki_tls
   loki_tenant_id                     = var.loki_tenant_id
-  task_role_arn                      = null
-}
-
-resource "aws_iam_role_policy_attachment" "firelens_task_role" {
-  count = var.enable_firelens ? 1 : 0
-
-  role       = module.ecs.task_role_name
-  policy_arn = module.firelens.firelens_task_role_policy_arn
-
-  depends_on = [
-    module.ecs,
-    module.firelens
-  ]
+  task_role_arn                      = module.ecs.task_role_arn
 }
 
 module "secrets_manager" {
