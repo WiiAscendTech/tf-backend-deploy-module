@@ -75,6 +75,215 @@ locals {
     logConfiguration = local.app_log_configuration
   } : {})
 
+  fluent_bit_config = <<-EOT
+[SERVICE]
+    Flush        5
+    Daemon       Off
+    Log_Level    info
+
+[INPUT]
+    Name              forward
+    Listen            0.0.0.0
+    Port              24224
+
+[FILTER]
+    Name                modify
+    Match               *
+    Remove              container_id
+    Remove              source
+    Remove              ecs_task_arn
+    Remove              task_arn
+    Remove              ecs_cluster
+    Remove              ecs_task_definition
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists log
+    Set                 message ${log}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists message
+    Add                 clean_message ${message}
+    Remove              message
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists clean_message
+    Add                 message ${clean_message}
+    Remove              clean_message
+
+[FILTER]
+    Name                rewrite_tag
+    Match               *
+    Rule                message ^(.*)$ message false
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists message
+    Add                 log ${message}
+    Remove              message
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists log
+    Add                 message ${log}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists message
+    Add                 log ${message}
+    Remove              message
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists log
+    Add                 message ${log}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists message
+    Add                 log ${message}
+    Remove              message
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists log
+    Add                 message ${log}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists message
+    Add                 log ${message}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists log
+    Add                 message ${log}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists message
+    Add                 log ${message}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists log
+    Add                 message ${log}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists message
+    Add                 log ${message}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists log
+    Add                 message ${log}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists message
+    Add                 log ${message}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists log
+    Add                 message ${log}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists message
+    Add                 log ${message}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists log
+    Add                 message ${log}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists message
+    Add                 log ${message}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists log
+    Add                 message ${log}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists message
+    Add                 log ${message}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists log
+    Add                 message ${log}
+    Remove              log
+
+[FILTER]
+    Name                modify
+    Match               *
+    Condition           Key_exists message
+    Add                 log ${message}
+    Remove              message
+
+[OUTPUT]
+    Name              s3
+    Match             *
+    bucket            ${S3_BUCKET}
+    region            ${AWS_REGION}
+    total_file_size   ${TOTAL_FILE}
+    upload_timeout    ${UPLOAD_TO}
+    use_put_object    On
+    store_dir         /tmp/fluent-bit-s3
+    s3_key_format     /${S3_PREFIX}/%Y/%m/%d/%H/%M/%S_${container_name}_%i
+    compression       ${COMPRESS}
+    storage_class     ${S3_CLASS}
+    log_key           log
+EOT
+
   log_router_container_definition = var.enable_firelens ? merge({
     name      = "log-router"
     image     = var.firelens_image
@@ -86,12 +295,10 @@ locals {
       type = "fluentbit"
       options = {
         enable-ecs-log-metadata = "true"
-        "config-file-type"  = "s3"
-        "config-file-value" = "arn:aws:s3:::${var.s3_logs_bucket_name}/${var.s3_logs_config_key}"
-  }
+      }
     }
 
-    environment = [
+    environment = concat([
       { name = "APP_NAME", value = var.application },
       { name = "ENVIRONMENT", value = var.environment },
       { name = "S3_BUCKET", value = var.s3_logs_bucket_name },
@@ -100,8 +307,9 @@ locals {
       { name = "S3_CLASS", value = var.s3_logs_storage_class },
       { name = "TOTAL_FILE", value = var.fluent_total_file_size },
       { name = "UPLOAD_TO", value = var.fluent_upload_timeout },
-      { name = "COMPRESS", value = var.fluent_compression }
-    ]
+      { name = "COMPRESS", value = var.fluent_compression },
+      { name = "FLUENT_CONF", value = local.fluent_bit_config }
+    ])
 
     healthCheck = {
       command     = ["CMD-SHELL", "pgrep fluent-bit > /dev/null || exit 1"]
