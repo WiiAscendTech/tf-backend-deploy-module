@@ -30,8 +30,8 @@ resource "aws_s3_object" "fluent_bit_config" {
   bucket = aws_s3_bucket.firelens_logs[0].id
   key    = var.s3_logs_config_key
 
-  content = file("${path.module}/fluent-bit.conf")
-  etag    = filemd5("${path.module}/fluent-bit.conf")
+  content = file("${path.module}/config/fluent-bit.conf")
+  etag    = filemd5("${path.module}/config/fluent-bit.conf")
 }
 
 resource "aws_s3_bucket" "firelens_logs" {
