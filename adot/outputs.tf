@@ -12,3 +12,7 @@ output "remote_write_policy_arn" {
   value       = aws_iam_policy.remote_write.arn
 }
 
+output "terraform_backend_role_arn" {
+  description = "ARN da role terraform-backend-access-role"
+  value       = module.terraform_backend_role.role_arn
+}

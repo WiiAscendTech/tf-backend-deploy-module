@@ -110,3 +110,9 @@ variable "task_role_arn" {
   type        = string
   default     = null
 }
+
+variable "adot_sigv4_assume_role_arn" {
+  description = "Role que o ADOT deve assumir para assinar chamadas SigV4 (ex.: terraform-backend-access-role na observability)"
+  type        = string
+  default     = null
+}

@@ -54,7 +54,7 @@ resource "aws_iam_role_policy_attachment" "remote_write" {
 resource "local_file" "adot_config" {
   content = templatefile("${path.module}/templates/adot-config.yaml.tpl", {
     region               = var.region
-    assume_role_arn      = aws_iam_role.remote_write.arn
+    assume_role_arn      = var.adot_sigv4_assume_role_arn != null ? var.adot_sigv4_assume_role_arn : aws_iam_role.remote_write.arn
     amp_remote_write_url = var.amp_remote_write_url
     enable_metrics       = var.enable_metrics
     project_name         = var.application
