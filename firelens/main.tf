@@ -25,14 +25,16 @@ data "aws_iam_policy_document" "firelens_bucket_policy" {
   }
 }
 
-resource "aws_s3_object" "fluent_bit_config" {
-  count  = var.enable_firelens ? 1 : 0
-  bucket = aws_s3_bucket.firelens_logs[0].id
-  key    = var.s3_logs_config_key
-
-  content = file("${path.module}/config/fluent-bit.conf")
-  etag    = filemd5("${path.module}/config/fluent-bit.conf")
-}
+# Resource removido: Fargate não suporta arquivo de configuração do FireLens via S3
+# A configuração do Fluent Bit é feita via variável de ambiente FLUENT_CONF no módulo ECS
+# resource "aws_s3_object" "fluent_bit_config" {
+#   count  = var.enable_firelens ? 1 : 0
+#   bucket = aws_s3_bucket.firelens_logs[0].id
+#   key    = var.s3_logs_config_key
+#
+#   content = file("${path.module}/config/fluent-bit.conf")
+#   etag    = filemd5("${path.module}/config/fluent-bit.conf")
+# }
 
 resource "aws_s3_bucket" "firelens_logs" {
   count         = var.enable_firelens ? 1 : 0

@@ -100,21 +100,21 @@ locals {
     Name                modify
     Match               *
     Condition           Key_exists log
-    Set                 message ${log}
+    Set                 message $${log}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists message
-    Add                 clean_message ${message}
+    Add                 clean_message $${message}
     Remove              message
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists clean_message
-    Add                 message ${clean_message}
+    Add                 message $${clean_message}
     Remove              clean_message
 
 [FILTER]
@@ -126,161 +126,161 @@ locals {
     Name                modify
     Match               *
     Condition           Key_exists message
-    Add                 log ${message}
+    Add                 log $${message}
     Remove              message
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists log
-    Add                 message ${log}
+    Add                 message $${log}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists message
-    Add                 log ${message}
+    Add                 log $${message}
     Remove              message
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists log
-    Add                 message ${log}
+    Add                 message $${log}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists message
-    Add                 log ${message}
+    Add                 log $${message}
     Remove              message
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists log
-    Add                 message ${log}
+    Add                 message $${log}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists message
-    Add                 log ${message}
+    Add                 log $${message}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists log
-    Add                 message ${log}
+    Add                 message $${log}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists message
-    Add                 log ${message}
+    Add                 log $${message}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists log
-    Add                 message ${log}
+    Add                 message $${log}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists message
-    Add                 log ${message}
+    Add                 log $${message}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists log
-    Add                 message ${log}
+    Add                 message $${log}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists message
-    Add                 log ${message}
+    Add                 log $${message}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists log
-    Add                 message ${log}
+    Add                 message $${log}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists message
-    Add                 log ${message}
+    Add                 log $${message}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists log
-    Add                 message ${log}
+    Add                 message $${log}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists message
-    Add                 log ${message}
+    Add                 log $${message}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists log
-    Add                 message ${log}
+    Add                 message $${log}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists message
-    Add                 log ${message}
+    Add                 log $${message}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists log
-    Add                 message ${log}
+    Add                 message $${log}
     Remove              log
 
 [FILTER]
     Name                modify
     Match               *
     Condition           Key_exists message
-    Add                 log ${message}
+    Add                 log $${message}
     Remove              message
 
 [OUTPUT]
     Name              s3
     Match             *
-    bucket            ${S3_BUCKET}
-    region            ${AWS_REGION}
-    total_file_size   ${TOTAL_FILE}
-    upload_timeout    ${UPLOAD_TO}
+    bucket            $${S3_BUCKET}
+    region            $${AWS_REGION}
+    total_file_size   $${TOTAL_FILE}
+    upload_timeout    $${UPLOAD_TO}
     use_put_object    On
     store_dir         /tmp/fluent-bit-s3
-    s3_key_format     /${S3_PREFIX}/%Y/%m/%d/%H/%M/%S_${container_name}_%i
-    compression       ${COMPRESS}
-    storage_class     ${S3_CLASS}
+    s3_key_format     /$${S3_PREFIX}/%Y/%m/%d/%H/%M/%S_$${container_name}_%i
+    compression       $${COMPRESS}
+    storage_class     $${S3_CLASS}
     log_key           log
 EOT
 
