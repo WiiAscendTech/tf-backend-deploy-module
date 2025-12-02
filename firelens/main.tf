@@ -25,6 +25,15 @@ data "aws_iam_policy_document" "firelens_bucket_policy" {
   }
 }
 
+resource "aws_s3_object" "fluent_bit_config" {
+  count  = var.enable_firelens ? 1 : 0
+  bucket = aws_s3_bucket.firelens_logs[0].id
+  key    = var.s3_logs_config_key
+
+  content = file("${path.module}/fluent-bit.conf")
+  etag    = filemd5("${path.module}/fluent-bit.conf")
+}
+
 resource "aws_s3_bucket" "firelens_logs" {
   count         = var.enable_firelens ? 1 : 0
   bucket        = var.s3_logs_bucket_name

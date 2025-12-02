@@ -310,6 +310,12 @@ variable "s3_logs_bucket_name" {
   default     = null
 }
 
+variable "s3_logs_config_key" {
+  description = "Caminho do arquivo de configuração do Fluent Bit armazenado no bucket"
+  type        = string
+  default     = "firelens/config/fluent-bit.conf"
+}
+
 variable "s3_logs_prefix" {
   description = "Prefixo/pasta onde os logs serão armazenados no bucket"
   type        = string
