@@ -218,7 +218,11 @@ variable "loki_tenant_id" {
 }
 
 variable "task_role_arn" {
-  description = "ARN da IAM Role da Task ECS que receberá as permissões do FireLens"
   type        = string
-  default     = null
+  description = "Task role ARN usada pelo FireLens"
+
+  validation {
+    condition     = !var.enable_firelens || (var.enable_firelens && var.task_role_arn != "")
+    error_message = "Quando enable_firelens = true, é obrigatório informar um task_role_arn válido."
+  }
 }

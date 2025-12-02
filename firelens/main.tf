@@ -143,7 +143,8 @@ resource "aws_iam_policy" "firelens_task_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "firelens_task_role" {
-  count      = var.enable_firelens && var.task_role_arn != null ? 1 : 0
+  count = var.enable_firelens ? 1 : 0
+
   role       = split("/", var.task_role_arn)[length(split("/", var.task_role_arn)) - 1]
   policy_arn = aws_iam_policy.firelens_task_role[0].arn
 }
