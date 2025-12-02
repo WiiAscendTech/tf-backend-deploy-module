@@ -222,6 +222,12 @@ variable "volumes" {
   default = []
 }
 
+variable "adot_sigv4_assume_role_arn" {
+  description = "Role que o ADOT deve assumir para assinar as chamadas SigV4 (ex.: terraform-backend-access-role na conta de observabilidade)"
+  type        = string
+  default     = null
+}
+
 variable "ecs_environment_variables" {
   description = <<EOT
 Lista de variáveis de ambiente para o container principal do ECS.

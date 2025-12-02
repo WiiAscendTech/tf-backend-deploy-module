@@ -22,6 +22,7 @@ module "adot" {
 
   region                 = var.region
   amp_remote_write_url   = var.amp_remote_write_url
+  adot_sigv4_assume_role_arn = var.adot_sigv4_assume_role_arn
   amp_workspace_arn      = var.amp_workspace_arn
   assume_role_principals = var.adot_assume_role_principals
   task_role_arn          = null
