@@ -34,6 +34,18 @@ variable "enable_cloudwatch_logs" {
   default     = true
 }
 
+variable "cloudwatch_log_group_name" {
+  description = "Nome do CloudWatch Log Group para envio de logs"
+  type        = string
+  default     = null
+}
+
+variable "log_group" {
+  description = "CloudWatch Log Group (nome completo). Se null, será gerado automaticamente."
+  type        = string
+  default     = null
+}
+
 variable "enable_firelens" {
   description = "Habilita o sidecar FireLens/Fluent Bit para envio de logs ao S3"
   type        = bool

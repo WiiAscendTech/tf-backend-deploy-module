@@ -144,6 +144,22 @@ data "aws_iam_policy_document" "firelens_task_role" {
       resources = [statement.value]
     }
   }
+
+  dynamic "statement" {
+    for_each = var.enable_cloudwatch_logs && local.cloudwatch_log_group_name != null ? [local.cloudwatch_log_group_name] : []
+    content {
+      actions = [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogStreams"
+      ]
+      resources = [
+        "arn:aws:logs:*:*:log-group:${statement.value}",
+        "arn:aws:logs:*:*:log-group:${statement.value}:*"
+      ]
+    }
+  }
 }
 
 resource "aws_iam_policy" "firelens_task_role" {

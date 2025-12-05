@@ -282,6 +282,18 @@ locals {
     compression       $${COMPRESS}
     storage_class     $${S3_CLASS}
     log_key           log
+
+${var.enable_cloudwatch_logs ? <<-CWOUTPUT
+[OUTPUT]
+    Name              cloudwatch_logs
+    Match             *
+    region            $${AWS_REGION}
+    log_group_name    $${CW_LOG_GROUP}
+    log_stream_prefix $${CW_LOG_STREAM_PREFIX}
+    auto_create_group On
+    log_key           log
+CWOUTPUT
+: ""}
 EOT
 
   log_router_container_definition = var.enable_firelens ? merge({
@@ -309,7 +321,10 @@ EOT
       { name = "UPLOAD_TO", value = var.fluent_upload_timeout },
       { name = "COMPRESS", value = var.fluent_compression },
       { name = "FLUENT_CONF", value = local.fluent_bit_config }
-    ])
+    ], var.enable_cloudwatch_logs ? [
+      { name = "CW_LOG_GROUP", value = local.cloudwatch_log_group_name },
+      { name = "CW_LOG_STREAM_PREFIX", value = var.application }
+    ] : [])
 
     healthCheck = {
       command     = ["CMD-SHELL", "pgrep fluent-bit > /dev/null || exit 1"]

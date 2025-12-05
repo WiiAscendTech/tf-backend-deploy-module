@@ -196,6 +196,7 @@ module "firelens" {
 
   enable_cloudwatch_logs             = var.enable_cloudwatch_logs
   enable_firelens                    = var.enable_firelens
+  log_group                          = var.log_group
   s3_logs_bucket_name                = var.s3_logs_bucket_name
   s3_logs_force_destroy              = var.s3_logs_force_destroy
   s3_logs_prefix                     = var.s3_logs_prefix
